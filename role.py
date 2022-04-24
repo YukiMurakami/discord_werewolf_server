@@ -359,6 +359,18 @@ class MasonRole(Role):
         self.know_names = [self.name]
 
 
+class CultistRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "狂信者"
+        self.token = "信"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.WEREWOLF
+        self.know_names = [token2role("狼")().name]
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -367,7 +379,8 @@ def eng2token(eng):
         "medium": "霊",
         "bodyguard": "狩",
         "madman": "狂",
-        "mason": "共"
+        "mason": "共",
+        "cultist": "信",
     }
     return dic[eng]
 
@@ -381,5 +394,6 @@ def token2role(token):
         "狩": BodyguardRole,
         "狂": MadmanRole,
         "共": MasonRole,
+        "信": CultistRole,
     }
     return dic[token]

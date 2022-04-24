@@ -1,5 +1,5 @@
 from enum import Enum
-from util import Status, FirstSeerRule
+from util import Status, FirstSeerRule, BodyguardRule
 import random
 
 
@@ -290,12 +290,70 @@ class MediumRole(Role):
         return action_results
 
 
+class BodyguardRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "狩人"
+        self.token = "狩"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.VILLAGER
+        self.know_names = []
+
+    def get_actions(self, game, player_discord_id):
+        actions = super().get_actions(game, player_discord_id)
+        # 夜フェイズで２日目以降
+        if game.status == Status.NIGHT:
+            if game.day >= 1:
+                already = False
+                for action in game.decide_actions:
+                    if "bodyguard:%s" % player_discord_id in action:
+                        already = True
+                if already is False:
+                    lastguard_id = None
+                    print("lastguard", game.last_guards)
+                    rule = game.rule["bodyguard"]
+                    if rule == BodyguardRule.CANNOT_CONSECUTIVE_GUARD:
+                        for lastguard in game.last_guards:
+                            # discord_id:target_discord_id:day
+                            div = lastguard.split(":")
+                            if player_discord_id == div[0] and int(
+                                    div[2]) == game.day - 1:
+                                lastguard_id = div[1]
+                    # 生きている自分以外を守る
+                    # アクションは bodyguard:my_discord_id:target_discord_id
+                    for p in game.players:
+                        if p.live and p.discord_id != player_discord_id:
+                            if (lastguard_id is None or
+                                    lastguard_id != p.discord_id):
+                                actions.append(
+                                    "bodyguard:%s:%s" % (
+                                        player_discord_id, p.discord_id
+                                    )
+                                )
+        return actions
+
+    def get_action_results(self, game, player_discord_id):
+        """
+        特定個人や役職しか知らない行動結果を返す
+        """
+        action_results = super().get_action_results(game, player_discord_id)
+        # 夜フェイズの守り先
+        for action in game.decide_actions:
+            div = action.split(":")
+            if div[0] == "bodyguard":
+                action_results.append(action)
+        return action_results
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
         "werewolf": "狼",
         "seer": "占",
         "medium": "霊",
+        "bodyguard": "狩",
         "mason": "共"
     }
     return dic[eng]
@@ -307,5 +365,6 @@ def token2role(token):
         "狼": WerewolfRole,
         "占": SeerRole,
         "霊": MediumRole,
+        "狩": BodyguardRole,
     }
     return dic[token]

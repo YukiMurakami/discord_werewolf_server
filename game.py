@@ -100,6 +100,7 @@ class Game:
         self.day = 0
         self.vote_candidates = []
         self.excuted_id = None
+        self.last_guards = []
         self.timer_flag = ""
         self.rule = {
             "roles": {"村": 3, "狼": 1},
@@ -228,7 +229,18 @@ class Game:
             if div[0] == "attack":
                 victim_ids.append(div[2])
         victim_ids = list(set(victim_ids))
-        # TODO:守られた人は死なない
+        # 守られた人は死なない
+        for action in self.decide_actions:
+            div = action.split(":")
+            if div[0] == "bodyguard":
+                src_id = div[1]
+                dist_id = div[2]
+                day = self.day - 1
+                self.last_guards.append("%s:%s:%d" % (
+                    src_id, dist_id, day
+                ))
+                if dist_id in victim_ids:
+                    victim_ids.remove(dist_id)
 
         for victim_id in victim_ids:
             self.action_results.append("victim:%s" % victim_id)

@@ -1,0 +1,6 @@
+[API]
+HOST=127.0.0.1
+PORT=60000
+
+[DISCORD]
+TOKEN=xxxx

@@ -111,17 +111,6 @@ class VillagerRole(Role):
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
 
-    def get_actions(self, game, player_discord_id):
-        actions = super().get_actions(game, player_discord_id)
-        return actions
-
-    def get_action_results(self, game, player_discord_id):
-        """
-        特定個人や役職しか知らない行動結果を返す
-        """
-        action_results = super().get_action_results(game, player_discord_id)
-        return action_results
-
 
 class WerewolfRole(Role):
     def __init__(self):
@@ -347,6 +336,17 @@ class BodyguardRole(Role):
         return action_results
 
 
+class MadmanRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "狂人"
+        self.token = "狂"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.WEREWOLF
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -354,6 +354,7 @@ def eng2token(eng):
         "seer": "占",
         "medium": "霊",
         "bodyguard": "狩",
+        "madman": "狂",
         "mason": "共"
     }
     return dic[eng]
@@ -366,5 +367,6 @@ def token2role(token):
         "占": SeerRole,
         "霊": MediumRole,
         "狩": BodyguardRole,
+        "狂": MadmanRole,
     }
     return dic[token]

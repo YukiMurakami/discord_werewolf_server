@@ -228,11 +228,13 @@ class Game:
             now_candidates = sorted(max_ids)
             if latest_candidates == now_candidates:
                 # 投票しても結果が変わらない -> ランダム処刑
-                excuted_id = shuffle(now_candidates)[0]
+                shuffle(now_candidates)
+                excuted_id = now_candidates[0]
             else:
                 # 決選投票
                 self.vote_candidates = max_ids
                 self.start_vote()
+                return
         else:
             assert len(max_ids) == 1
             excuted_id = max_ids[0]

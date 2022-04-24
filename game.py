@@ -77,12 +77,13 @@ class Player:
 
 
 class Game:
-    def __init__(self, callback):
+    def __init__(self, callback, move_vc):
         self.callback = callback
         self.players = []
         self.minute = 0
         self.second = 0
         self.timer_flag = ""
+        self.move_vc_func = move_vc
         self.reset()
         th = threading.Thread(target=self.timer)
         th.setDaemon(True)
@@ -160,10 +161,54 @@ class Game:
                 rest_actions += p.role.get_actions(self, p.discord_id)
         return rest_actions
 
+    def move_members(self):
+        dic = {}
+        if self.status in [Status.RESULT, Status.SETTING]:
+            # 全員会議室
+            for i in range(len(self.players)):
+                discord_id = self.players[i].discord_id
+                dic[discord_id] = "conference"
+        if self.status in [Status.ROLE_CHECK, Status.MORNING]:
+            # 個別部屋へ
+            for i in range(len(self.players)):
+                discord_id = self.players[i].discord_id
+                live = self.players[i].live
+                if live:
+                    dic[discord_id] = "personal%d" % i
+                else:
+                    dic[discord_id] = "ghost"
+        if self.status == Status.NIGHT:
+            # 夜行動へ
+            for i in range(len(self.players)):
+                discord_id = self.players[i].discord_id
+                live = self.players[i].live
+                token = self.players[i].role.get_token()
+                if live:
+                    if eng2token("werewolf") == token:
+                        dic[discord_id] = "werewolf"
+                    elif eng2token("mason") == token:
+                        dic[discord_id] = "mason"
+                    else:
+                        dic[discord_id] = "personal%d" % i
+                else:
+                    dic[discord_id] = "ghost"
+        if self.status in [Status.AFTERNOON, Status.EXCUTION, Status.VOTE]:
+            # 昼行動へ
+            for i in range(len(self.players)):
+                discord_id = self.players[i].discord_id
+                live = self.players[i].live
+                if live:
+                    dic[discord_id] = "conference"
+                else:
+                    dic[discord_id] = "ghost"
+
+        self.move_vc_func(dic)
+
     def start_night(self):
         self.action_results = []
         self.decide_actions = []
         self.status = Status.NIGHT
+        self.move_members()
         self.set_timer(
             "night",
             self.rule["night_seconds"] // 60,
@@ -173,6 +218,7 @@ class Game:
     def start_morning(self):
         self.day += 1
         self.status = Status.MORNING
+        self.move_members()
         self.set_timer("morning", 0, 10)
         # 犠牲者セット
         victim_ids = []
@@ -196,6 +242,7 @@ class Game:
         if seconds < self.rule["min_day_seconds"]:
             seconds = self.rule["min_day_seconds"]
         self.status = Status.AFTERNOON
+        self.move_members()
         self.set_timer("afternoon", seconds // 60, seconds % 60)
         self.callback()
 
@@ -206,6 +253,7 @@ class Game:
             self.vote_candidates = [
                 p.discord_id for p in self.players if p.live]
         self.status = Status.VOTE
+        self.move_members()
         self.callback()
 
     def start_excution(self):
@@ -241,6 +289,7 @@ class Game:
         self.excuted_id = excuted_id
         self.decide_actions = []
         self.status = Status.EXCUTION
+        self.move_members()
         self.callback()
 
     def start_result(self):
@@ -248,7 +297,14 @@ class Game:
         結果表示
         """
         self.status = Status.RESULT
+        self.move_members()
         self.callback()
+
+    def start_role_check(self):
+        self.status = Status.ROLE_CHECK
+        self.move_members()
+        self.callback()
+        self.set_timer("role_checking", 0, 10)
 
     def set_timer(self, timer_flag, minute, second):
         self.timer_flag = timer_flag
@@ -300,9 +356,7 @@ class Game:
         if self.status != Status.SETTING:
             return
         self.set_roles()
-        self.status = Status.ROLE_CHECK
-        self.callback()
-        self.set_timer("role_checking", 0, 10)
+        self.start_role_check()
 
     def set_roles(self):
         """
@@ -366,6 +420,7 @@ class Game:
         if self.status == Status.RESULT:
             if "result:" in action:
                 self.reset()
+                self.move_members()
                 self.callback()
 
     def change_rule(self, message: str):

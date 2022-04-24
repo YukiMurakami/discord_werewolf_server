@@ -296,6 +296,7 @@ def eng2token(eng):
         "werewolf": "狼",
         "seer": "占",
         "medium": "霊",
+        "mason": "共"
     }
     return dic[eng]
 

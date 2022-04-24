@@ -15,7 +15,7 @@ class Manager:
     def __init__(self):
         self.discordapi = None
         self.network = None
-        self.game = Game(self.game_callback)
+        self.game = Game(self.game_callback, self.move_vc)
 
     def start(self):
         print("backend start")
@@ -28,10 +28,10 @@ class Manager:
         )
 
         network_task = self.network.get_infinite_task()
-        discord_task = self.discordapi.get_infinite_task()
+        discord_tasks = self.discordapi.get_infinite_tasks()
 
         tasks = asyncio.gather(
-            network_task, discord_task
+            network_task, discord_tasks[0], discord_tasks[1]
         )
         asyncio.get_event_loop().run_until_complete(tasks)
         print("finish")
@@ -84,6 +84,15 @@ class Manager:
         """
         print("callback", self.game.status)
         self.send_game_status_all()
+
+    def move_vc(self, data):
+        """
+        data: discord_idとroom_keyのdict
+        """
+        for k, v in data.items():
+            self.discordapi.move_member(
+                k, v
+            )
 
     # 入室済みプレイヤー全員にゲーム情報を送る
     def send_game_status_all(self):

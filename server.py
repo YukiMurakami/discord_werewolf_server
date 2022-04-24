@@ -70,7 +70,8 @@ class Manager:
                 "first_seer_random_white", "bodyguard_rule_no",
                 "bodyguard_rule_yes", "+medium", "-medium",
                 "+bodyguard", "-bodyguard",
-                "+madman", "-madman"]:
+                "+madman", "-madman",
+                "+mason", "-mason"]:
             self.game.change_rule(data["message"])
             self.send_game_status_all()
         elif data["message"] == "game_start":

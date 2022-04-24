@@ -347,6 +347,18 @@ class MadmanRole(Role):
         self.team = Team.WEREWOLF
 
 
+class MasonRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "共有者"
+        self.token = "共"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.VILLAGER
+        self.know_names = [self.name]
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -368,5 +380,6 @@ def token2role(token):
         "霊": MediumRole,
         "狩": BodyguardRole,
         "狂": MadmanRole,
+        "共": MasonRole,
     }
     return dic[token]

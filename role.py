@@ -176,7 +176,8 @@ class SeerRole(Role):
             for p in game.players:
                 if p.discord_id != player_discord_id:
                     if (p.role is not None and
-                            p.role.get_team_count() != TeamCount.WEREWOLF):
+                            p.role.get_team_count() not in [
+                                TeamCount.WEREWOLF, TeamCount.NOTHING]):
                         cands.append(p.discord_id)
             if len(cands) > 0:
                 random.shuffle(cands)
@@ -371,6 +372,18 @@ class CultistRole(Role):
         self.know_names = [token2role("狼")().name]
 
 
+class FoxRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "妖狐"
+        self.token = "狐"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.NOTHING
+        self.team = Team.FOX
+        self.know_names = [self.name]
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -381,6 +394,7 @@ def eng2token(eng):
         "madman": "狂",
         "mason": "共",
         "cultist": "信",
+        "fox": "狐",
     }
     return dic[eng]
 
@@ -395,5 +409,6 @@ def token2role(token):
         "狂": MadmanRole,
         "共": MasonRole,
         "信": CultistRole,
+        "狐": FoxRole,
     }
     return dic[token]

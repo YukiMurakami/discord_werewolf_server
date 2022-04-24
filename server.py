@@ -71,7 +71,8 @@ class Manager:
                 "bodyguard_rule_yes", "+medium", "-medium",
                 "+bodyguard", "-bodyguard",
                 "+madman", "-madman",
-                "+mason", "-mason", "+cultist", "-cultist"]:
+                "+mason", "-mason", "+cultist", "-cultist",
+                "+fox", "-fox"]:
             self.game.change_rule(data["message"])
             self.send_game_status_all()
         elif data["message"] == "game_start":

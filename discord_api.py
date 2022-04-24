@@ -90,6 +90,8 @@ class DiscordClient:
             name = config["DISCORD"]["CONFERENCE_ROOM"]
         if key == "werewolf":
             name = config["DISCORD"]["WEREWOLF_ROOM"]
+        if key == "fox":
+            name = config["DISCORD"]["FOX_ROOM"]
         if key == "mason":
             name = config["DISCORD"]["MASON_ROOM"]
         if key == "ghost":

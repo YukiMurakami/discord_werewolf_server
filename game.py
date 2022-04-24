@@ -189,6 +189,8 @@ class Game:
                         dic[discord_id] = "werewolf"
                     elif eng2token("mason") == token:
                         dic[discord_id] = "mason"
+                    elif eng2token("fox") == token:
+                        dic[discord_id] = "fox"
                     else:
                         dic[discord_id] = "personal%d" % i
                 else:
@@ -227,7 +229,10 @@ class Game:
         for action in self.decide_actions:
             div = action.split(":")
             if div[0] == "attack":
-                victim_ids.append(div[2])
+                victim_token = self.get_player(div[2]).role.get_token()
+                if victim_token not in [eng2token("fox")]:
+                    # 妖狐以外が噛める
+                    victim_ids.append(div[2])
         victim_ids = list(set(victim_ids))
         # 守られた人は死なない
         for action in self.decide_actions:
@@ -241,7 +246,18 @@ class Game:
                 ))
                 if dist_id in victim_ids:
                     victim_ids.remove(dist_id)
-
+        # 占われた妖狐は死ぬ
+        for action in self.decide_actions:
+            div = action.split(":")
+            if div[0] == "seer":
+                src_id = div[1]
+                dist_id = div[2]
+                dist_token = self.get_player(dist_id).role.get_token()
+                if dist_token in [eng2token("fox")]:
+                    if dist_id not in victim_ids:
+                        victim_ids.append(dist_id)
+        victim_ids = list(set(victim_ids))
+        shuffle(victim_ids)
         for victim_id in victim_ids:
             self.action_results.append("victim:%s" % victim_id)
             self.get_player(victim_id).live = False
@@ -326,6 +342,7 @@ class Game:
     def get_winner_team(self):
         werewolf_count = 0
         human_count = 0
+        fox_count = 0
         if self.status == Status.SETTING:
             for k, v in self.rule["roles"].items():
                 if token2role(k)().get_team_count() == TeamCount.WEREWOLF:
@@ -339,12 +356,18 @@ class Game:
                         werewolf_count += 1
                     if p.role.get_team_count() == TeamCount.HUMAN:
                         human_count += 1
+                    if p.role.get_team() == Team.FOX:
+                        fox_count += 1
         # 人狼がいなければ村かち
         if werewolf_count <= 0 and human_count <= 0:
             return None
         if werewolf_count <= 0:
+            if fox_count > 0:
+                return Team.FOX
             return Team.VILLAGER
         if werewolf_count >= human_count:
+            if fox_count > 0:
+                return Team.FOX
             return Team.WEREWOLF
         return None
 

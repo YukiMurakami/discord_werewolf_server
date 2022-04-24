@@ -191,6 +191,7 @@ class Game:
         self.callback()
 
     def start_afternoon(self):
+        self.decide_actions = []
         seconds = self.rule["day_seconds"]
         seconds -= self.rule["day_minus_seconds"] * (self.day - 1)
         if seconds < self.rule["min_day_seconds"]:

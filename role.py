@@ -257,11 +257,45 @@ class SeerRole(Role):
         return action_results
 
 
+class MediumRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "霊媒師"
+        self.token = "霊"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.VILLAGER
+        self.know_names = []
+
+    def get_actions(self, game, player_discord_id):
+        actions = super().get_actions(game, player_discord_id)
+        return actions
+
+    def get_action_results(self, game, player_discord_id):
+        """
+        特定個人や役職しか知らない行動結果を返す
+        """
+        action_results = super().get_action_results(game, player_discord_id)
+        # 夜フェイズの霊媒結果を表示
+        if game.status in [Status.NIGHT, Status.MORNING]:
+            if game.excuted_id is not None:
+                action_results.append(
+                    "medium:%s:%s:%s" % (
+                        player_discord_id, game.excuted_id,
+                        game.get_player(
+                            game.excuted_id).role.get_medium_result().name
+                    )
+                )
+        return action_results
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
         "werewolf": "狼",
-        "seer": "占"
+        "seer": "占",
+        "medium": "霊",
     }
     return dic[eng]
 
@@ -271,5 +305,6 @@ def token2role(token):
         "村": VillagerRole,
         "狼": WerewolfRole,
         "占": SeerRole,
+        "霊": MediumRole,
     }
     return dic[token]

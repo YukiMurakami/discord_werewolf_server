@@ -149,8 +149,7 @@ class Game:
             else:
                 # TODO: 結果表示
                 print("FINISH", self.get_winner_team())
-                self.reset()
-                self.callback()
+                self.start_result()
         elif timer_flag == "afternoon" and self.status == Status.AFTERNOON:
             self.start_vote()
 
@@ -242,6 +241,13 @@ class Game:
         self.excuted_id = excuted_id
         self.decide_actions = []
         self.status = Status.EXCUTION
+        self.callback()
+
+    def start_result(self):
+        """
+        結果表示
+        """
+        self.status = Status.RESULT
         self.callback()
 
     def set_timer(self, timer_flag, minute, second):
@@ -354,10 +360,13 @@ class Game:
                 if self.get_winner_team() is None:
                     self.start_night()
                 else:
-                    # TODO: 結果表示
                     print("FINISH", self.get_winner_team())
-                    self.reset()
-                    self.callback()
+                    self.start_result()
+        # 結果完了
+        if self.status == Status.RESULT:
+            if "result:" in action:
+                self.reset()
+                self.callback()
 
     def change_rule(self, message: str):
         """
@@ -394,6 +403,8 @@ class Game:
 
     def get_status(self, from_discord_id):
         open_flag = False
+        if self.status == Status.RESULT:
+            open_flag = True
         action_results = list(self.action_results)
         # 個人分を追加
         for p in self.players:
@@ -402,6 +413,9 @@ class Game:
                     action_results += p.role.get_action_results(
                         self, from_discord_id
                     )
+        result = self.get_winner_team()
+        if result is not None:
+            result = result.name
         return {
             "status": self.status.name,
             "players": [
@@ -418,4 +432,5 @@ class Game:
             "day": self.day,
             "action_results": action_results,
             "excution": self.excuted_id,
+            "result": result
         }

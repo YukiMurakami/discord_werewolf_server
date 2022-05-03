@@ -1,3 +1,4 @@
+from configparser import ConfigParser
 from util import Status, FirstSeerRule, BodyguardRule
 from role import (
     Role,
@@ -15,11 +16,15 @@ import time
 class Player:
     def __init__(self):
         self.discord_id: str = ""
+        self.avator_url: str = ""
         self.name: str = ""
         self.role: Role = None
         self.live: bool = True
         self.voted_count: int = 0
         self.already_vote: bool = False
+        self.voice: str = None
+        self.speaking: bool = False
+        self.disconnect: bool = False
 
     def reset(self):
         self.role = None
@@ -72,7 +77,11 @@ class Player:
             "discord_id": self.discord_id,
             "actions": actions,
             "voted_count": self.voted_count,
-            "already_vote": self.already_vote
+            "already_vote": self.already_vote,
+            "avator_url": self.avator_url,
+            "voice": self.voice,
+            "speaking": self.speaking,
+            "disconnect": self.disconnect
         }
 
 
@@ -84,10 +93,20 @@ class Game:
         self.second = 0
         self.timer_flag = ""
         self.move_vc_func = move_vc
+        self.config = ConfigParser()
+        self.config.read("config.ini")
+        self.init_rule()
         self.reset()
         th = threading.Thread(target=self.timer)
         th.setDaemon(True)
         th.start()
+
+    def init_rule(self):
+        self.rule = {
+            "roles": {"村": 2, "狼": 1},
+            "first_seer": FirstSeerRule.FREE,
+            "bodyguard": BodyguardRule.CONSECUTIVE_GUARD,
+        }
 
     def reset(self):
         for p in self.players:
@@ -102,19 +121,26 @@ class Game:
         self.excuted_id = None
         self.last_guards = []
         self.timer_flag = ""
+
+        last_rule = {}
+        for key in ["roles", "first_seer", "bodyguard"]:
+            last_rule[key] = self.rule[key]
         self.rule = {
-            "roles": {"村": 3, "狼": 1},
-            "first_seer": FirstSeerRule.FREE,
-            "bodyguard": BodyguardRule.CONSECUTIVE_GUARD,
-            # "night_seconds": 60,
             "night_seconds": 10,
-            # "day_seconds": 160,
             "day_seconds": 10,
-            # "min_day_seconds": 180,
             "min_day_seconds": 10,
-            # "day_minus_seconds": 30,
-            "day_minus_seconds": 2,
+            "day_minus_seconds": 2
         }
+        """
+        self.rule = {
+            "night_seconds": 60,
+            "day_seconds": 360,
+            "min_day_seconds": 180,
+            "day_minus_seconds": 30
+        }
+        """
+        for key in ["roles", "first_seer", "bodyguard"]:
+            self.rule[key] = last_rule[key]
 
     def timer(self):
         while True:
@@ -154,6 +180,23 @@ class Game:
                 self.start_result()
         elif timer_flag == "afternoon" and self.status == Status.AFTERNOON:
             self.start_vote()
+
+    def move_vc_callback(self, dic):
+        # vc移動で呼ばれる
+        print(dic)
+        for p in self.players:
+            if p.discord_id in dic:
+                p.voice = dic[p.discord_id]
+        print([n.get_status(True, "", self) for n in self.players])
+        # 玄関にいるプレイヤーがいれば移動させる
+        exist_firstroom = False
+        firstroom_name = self.config["DISCORD"]["FIRST_ROOM"]
+        for p in self.players:
+            if p.voice == firstroom_name:
+                exist_firstroom = True
+        if exist_firstroom:
+            self.move_members()
+        self.callback()
 
     def get_live_player_rest_actions(self):
         rest_actions = []
@@ -378,8 +421,8 @@ class Game:
         の両方を満たした時開始可能
         """
         winner_team = self.get_winner_team()
-        if winner_team is not None:
-            return False
+        #if winner_team is not None:
+        #    return False
         role_sum = 0
         for k, v in self.rule["roles"].items():
             role_sum += v
@@ -405,13 +448,16 @@ class Game:
         for i in range(len(self.players)):
             self.players[i].role = roles[i]
 
-    def add_player(self, discord_id, name):
+    def add_player(self, discord_id, name, avator_url, voice):
         if self.get_player(discord_id) is not None:
             return
         p = Player()
         p.discord_id = discord_id
+        p.avator_url = avator_url
         p.name = name
+        p.voice = voice
         self.players.append(p)
+        self.move_members()
 
     def remove_player(self, discord_id):
         if self.get_player(discord_id) is None:

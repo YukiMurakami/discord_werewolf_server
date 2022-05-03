@@ -21,6 +21,7 @@ class Manager:
         print("backend start")
 
         self.discordapi = DiscordClient()
+        self.discordapi.move_vc_callback = self.game.move_vc_callback
         self.network = Network(
             close_callback=self.network_close_callback,
             disconnected_callback=self.network_disconnected_callback,
@@ -39,8 +40,21 @@ class Manager:
     def network_close_callback(a):
         print(a)
 
+    def update_user_connect_status(self):
+        # ゲームの各ユーザの接続状況をアップデートする
+        for p in self.game.players:
+            d_id = p.discord_id
+            if d_id in list(self.network.users.values()):
+                p.disconnect = False
+                print(p.name, p.disconnect)
+            else:
+                p.disconnect = True
+                print(p.name, p.disconnect)
+
     def network_disconnected_callback(self, discord_id):
         print("切断", discord_id)
+        self.update_user_connect_status()
+        self.send_game_status_all()
 
     def network_received_callback(self, discord_id, conn, data):
         print("received", discord_id, conn, data)
@@ -54,13 +68,31 @@ class Manager:
             # ゲームが進行中の場合は新規参加は許可しない
             if self.game.status != Status.SETTING:
                 # ただしすでに参加済みの場合は復帰処理
+                self.update_user_connect_status()
                 self.send_game_status_all()
             else:
+                m = self.discordapi.get_member(discord_id)
+                avator_url = (str(m.avatar_url)).replace(
+                    ".webp?size=1024", "")
+                voice = "None"
+                if m.voice is not None and m.voice.channel is not None:
+                    voice = m.voice.channel.name
                 self.game.add_player(
                     discord_id,
-                    self.discordapi.get_member(discord_id).display_name
+                    m.display_name,
+                    avator_url,
+                    voice
                 )
+                self.update_user_connect_status()
                 self.send_game_status_all()
+        elif ("start_speak:" in data["message"] or
+                "end_speak:" in data["message"]):
+            d_id = data["message"].split(":")[1]
+            mes = data["message"].split(":")[0]
+            p = self.game.get_player(d_id)
+            if p is not None:
+                p.speaking = (mes == "start_speak")
+                self.game.callback()
         elif data["message"] == "logout":
             self.game.remove_player(discord_id)
             self.send_game_status_all()
@@ -87,6 +119,7 @@ class Manager:
         ゲームの状況が変化した際に呼ばれる
         """
         print("callback", self.game.status)
+        self.update_user_connect_status()
         self.send_game_status_all()
 
     def move_vc(self, data):

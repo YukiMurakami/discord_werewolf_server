@@ -396,6 +396,7 @@ def eng2token(eng):
         "cultist": "信",
         "fox": "狐",
     }
+    # front川のrole_menu.jsを変更すること
     return dic[eng]
 
 

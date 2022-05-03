@@ -3,7 +3,6 @@
 """
 
 from configparser import ConfigParser
-from dis import disco
 import websockets
 import json
 import traceback

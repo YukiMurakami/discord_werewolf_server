@@ -25,9 +25,11 @@ class DiscordClient:
         intents = discord.Intents.all()
         self.client = discord.Client(intents=intents)
         self.client.on_ready = self.on_ready
+        self.client.on_voice_state_update = self.on_voice_state_update
         self.guild: discord.Guild = None
         self.members = []
         self.move_queue = []
+        self.move_vc_callback = None
 
     def get_member(self, discord_id):
         for m in self.members:
@@ -81,6 +83,20 @@ class DiscordClient:
                 "room_key": room_key
             }
         )
+
+    async def on_voice_state_update(self, member, before, after):
+        # 誰かがVCを移動すると呼ばれる
+        await self.update_member()
+        if self.move_vc_callback is not None:
+            dic = {}
+            for m in self.members:
+                m: discord.Member = m
+                v = None
+                if m.voice is not None:
+                    if m.voice.channel is not None:
+                        v = m.voice.channel.name
+                dic[str(m.id)] = v
+            self.move_vc_callback(dic)
 
     def get_vc(self, key):
         config = configparser.ConfigParser()

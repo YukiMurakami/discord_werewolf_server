@@ -124,19 +124,11 @@ class Game:
         for key in ["roles", "first_seer", "bodyguard"]:
             last_rule[key] = self.rule[key]
         self.rule = {
-            "night_seconds": 10,
-            "day_seconds": 10,
-            "min_day_seconds": 10,
-            "day_minus_seconds": 2
+            "night_seconds": int(self.config["GAME"]["NIGHT_SECONDS"]),
+            "day_seconds": int(self.config["GAME"]["DAY_MAX_SECONDS"]),
+            "min_day_seconds": int(self.config["GAME"]["DAY_MIN_SECONDS"]),
+            "day_minus_seconds": int(self.config["GAME"]["DAY_DIFF_SECONDS"])
         }
-        """
-        self.rule = {
-            "night_seconds": 60,
-            "day_seconds": 360,
-            "min_day_seconds": 180,
-            "day_minus_seconds": 30
-        }
-        """
         for key in ["roles", "first_seer", "bodyguard"]:
             self.rule[key] = last_rule[key]
 
@@ -173,7 +165,6 @@ class Game:
             if self.get_winner_team() is None:
                 self.start_afternoon()
             else:
-                # TODO: 結果表示
                 print("FINISH", self.get_winner_team())
                 self.start_result()
         elif timer_flag == "afternoon" and self.status == Status.AFTERNOON:
@@ -419,8 +410,8 @@ class Game:
         の両方を満たした時開始可能
         """
         winner_team = self.get_winner_team()
-        #if winner_team is not None:
-        #    return False
+        if winner_team is not None:
+            return False
         role_sum = 0
         for k, v in self.rule["roles"].items():
             role_sum += v

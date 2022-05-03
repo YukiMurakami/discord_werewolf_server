@@ -150,7 +150,7 @@ class Manager:
         result = []
         for m in members:
             m: discord.Member = m
-            if str(m.id) not in already_use_ids:
+            if str(m.id) not in already_use_ids and m.bot is False:
                 avator_url = (str(m.avatar_url)).replace(
                     ".webp?size=1024", "")
                 name = m.display_name

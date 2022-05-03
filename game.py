@@ -2,8 +2,6 @@ from configparser import ConfigParser
 from util import Status, FirstSeerRule, BodyguardRule
 from role import (
     Role,
-    VillagerRole,
-    WerewolfRole,
     eng2token,
     token2role,
     TeamCount, Team

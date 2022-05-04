@@ -7,6 +7,7 @@ import websockets
 import json
 import traceback
 import asyncio
+import ssl
 
 
 class Network:
@@ -25,10 +26,19 @@ class Network:
         config.read("config.ini")
         self.host = config["API"]["HOST"]
         self.port = config["API"]["PORT"]
+        self.sslfile = config["API"]["SSL_FILE"]
 
     def get_infinite_task(self):
-        self.socket = websockets.serve(
-            self.get_new_client, self.host, self.port)
+        if self.sslfile != "":
+            ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+            ssl_context.load_cert_chain(self.sslfile)
+            self.socket = websockets.serve(
+                self.get_new_client, self.host, self.port, ssl=ssl_context)
+            print("secure mode socket")
+        else:
+            self.socket = websockets.serve(
+                self.get_new_client, self.host, self.port)
+            print("no secure mode socket")
         asyncio.get_event_loop().run_until_complete(self.socket)
         return self.send_coroutine()
 

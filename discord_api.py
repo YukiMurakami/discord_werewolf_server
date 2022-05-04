@@ -1,20 +1,9 @@
 import discord
 import asyncio
-import hashlib
-from flask import Flask, jsonify, request
-from werkzeug.exceptions import BadRequest
-import threading
-import traceback
-from flask_cors import CORS
 import configparser
-from datetime import datetime, timedelta
-import time
 
 
 discordapi = None
-restapi = Flask(__name__)
-cors = CORS(restapi)
-restapi.config['JSON_AS_ASCII'] = False
 
 
 class DiscordClient:

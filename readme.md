@@ -3,7 +3,11 @@
 ## 実行方法
 ---
 ### Discord Botを作成
-  - https://discord.com/developers/applications にアクセスしてBotを作成する（admin権限付与）
+  - https://discord.com/developers/applications にアクセスしてBotを作成する
+    - Oauth2 -> URL Generatorにて、botのadmin権限を付与する
+    - bot -> Privileged Gateway Intentsを有効にす
+      - PRESENCE INTENT
+      - SERVER MEMBERS INTENT
   - この際に、tokenを取得しておくこと
   - 使用したいサーバーに参加させる
 ---

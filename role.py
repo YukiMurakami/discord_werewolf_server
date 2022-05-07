@@ -98,6 +98,15 @@ class Role:
                     actions.append(
                         "excution:%s" % player_discord_id
                     )
+        # お昼スキップ
+        if game.status == Status.AFTERNOON:
+            already_skip = False
+            for action in game.decide_actions:
+                if "skip:%s" % player_discord_id in action:
+                    already_skip = True
+            if already_skip is False:
+                actions.append("skip:%s" % player_discord_id)
+
         return actions
 
 

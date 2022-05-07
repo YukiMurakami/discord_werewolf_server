@@ -23,16 +23,19 @@ class Player:
         self.voice: str = None
         self.speaking: bool = False
         self.disconnect: bool = False
+        self.skip: bool = False
 
     def reset(self):
         self.role = None
         self.live = True
         self.voted_count = 0
         self.already_vote = False
+        self.skip = False
 
     def update_vote(self, game):
         self.voted_count = 0
         self.already_vote = False
+        self.skip = False
         for action in game.decide_actions:
             div = action.split(":")
             if div[0] == "vote":
@@ -40,6 +43,8 @@ class Player:
                     self.voted_count += 1
                 if div[1] == self.discord_id:
                     self.already_vote = True
+            if div[0] == "skip" and div[1] == self.discord_id:
+                self.skip = True
 
     def get_status(self, open_flag: bool, from_discord_id: str, game):
         """
@@ -79,7 +84,8 @@ class Player:
             "avator_url": self.avator_url,
             "voice": self.voice,
             "speaking": self.speaking,
-            "disconnect": self.disconnect
+            "disconnect": self.disconnect,
+            "skip": self.skip,
         }
 
 
@@ -473,6 +479,12 @@ class Game:
             rest_actions = self.get_live_player_rest_actions()
             if len(rest_actions) <= 0:
                 self.start_excution()
+        # スキップ完了
+        if self.status == Status.AFTERNOON:
+            rest_actions = self.get_live_player_rest_actions()
+            if len(rest_actions) <= 0:
+                self.minute = 0
+                self.second = 5
         # 遺言完了
         if self.status == Status.EXCUTION:
             rest_actions = self.get_live_player_rest_actions()

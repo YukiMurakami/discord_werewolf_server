@@ -52,7 +52,11 @@ class Manager:
                 print(p.name, p.disconnect)
 
     def network_disconnected_callback(self, discord_id):
-        print("切断", discord_id)
+        name = None
+        for p in self.game.players:
+            if p.discord_id == discord_id:
+                name = p.name
+        print("切断", discord_id, name)
         self.update_user_connect_status()
         self.send_game_status_all()
 
@@ -110,6 +114,15 @@ class Manager:
         elif data["message"] == "game_start":
             if self.game.can_start():
                 self.game.start()
+        elif "kick:" in data["message"]:
+            discord_id = data["message"].split(":")[1]
+            self.game.remove_player(discord_id)
+            self.send_game_status_all()
+            # キックされたプレイヤーに個別で通知
+            self.network.send_to_discord_id(
+                discord_id,
+                {"message": "kicked"}
+            )
         else:
             # のこりはアクション
             self.game.input_action(data["message"])

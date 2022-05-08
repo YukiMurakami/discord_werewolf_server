@@ -71,6 +71,18 @@ class Player:
         if self.discord_id == from_discord_id:
             if self.role is not None and self.live:
                 actions = self.role.get_actions(game, self.discord_id)
+            elif game.status == Status.SETTING:
+                # 役職配布前なのでここで個別対応
+                # 先頭プレイヤーはキック可能
+                now_index = -1
+                for i, p in enumerate(game.players):
+                    if p.discord_id == self.discord_id:
+                        now_index = i
+                        break
+                if now_index == 0:
+                    for i, p in enumerate(game.players):
+                        if i != 0:
+                            actions.append("kick:%s" % p.discord_id)
         # 投票数集計
         self.update_vote(game)
         return {

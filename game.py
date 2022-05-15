@@ -132,7 +132,9 @@ class Game:
         self.minute = 0
         self.second = 0
         self.action_results = []
+        self.logs = {}
         self.day = 0
+        self.vote_count = 0
         self.vote_candidates = []
         self.excuted_id = None
         self.last_guards = []
@@ -320,6 +322,7 @@ class Game:
         if seconds < self.rule["min_day_seconds"]:
             seconds = self.rule["min_day_seconds"]
         self.status = Status.AFTERNOON
+        self.vote_count = 0
         self.move_members()
         self.set_timer("afternoon", seconds // 60, seconds % 60)
         self.callback()
@@ -359,13 +362,14 @@ class Game:
             else:
                 # 決選投票
                 self.vote_candidates = max_ids
+                self.vote_count += 1
                 self.start_vote()
                 return
         else:
             assert len(max_ids) == 1
             excuted_id = max_ids[0]
         self.excuted_id = excuted_id
-        self.decide_actions = []
+        # self.decide_actions = []
         self.status = Status.EXCUTION
         self.move_members()
         self.callback()
@@ -483,6 +487,7 @@ class Game:
     def input_action(self, action):
         if action not in self.decide_actions:
             self.decide_actions.append(action)
+            self.add_log(action)
             self.callback()
 
         # アクション後に確認が必要なケースの対応
@@ -552,16 +557,20 @@ class Game:
 
     def get_status(self, from_discord_id):
         open_flag = False
+        log_open_flag = False
         if self.status == Status.RESULT:
             open_flag = True
+            log_open_flag = True
         action_results = list(self.action_results)
-        # 個人分を追加
+        # 個人分を追加 & 行動履歴開示条件（死亡しているか）の確認
         for p in self.players:
             if p.discord_id == from_discord_id:
                 if p.role is not None:
                     action_results += p.role.get_action_results(
                         self, from_discord_id
                     )
+                if p.live is False:
+                    log_open_flag = True
         result = self.get_winner_team()
         if result is not None:
             result = result.name
@@ -581,5 +590,46 @@ class Game:
             "day": self.day,
             "action_results": action_results,
             "excution": self.excuted_id,
-            "result": result
+            "result": result,
+            "log": self.get_logs(log_open_flag)
         }
+
+    def add_log(self, action):
+        """
+        行動ログの管理をする
+        原則として、アクションの合法確認は実施しない
+        何日目のどのフェーズでのアクションかを区別する
+        {
+            "0-NIGHT": ["vote:12345678:12345679", "..."]
+        }
+        """
+        key = "%d-%s" % (self.day, self.status.name)
+        if self.status == Status.VOTE:
+            key += "-%d" % self.vote_count
+        if key not in self.logs:
+            self.logs[key] = []
+        if action not in self.logs[key]:
+            self.logs[key].append(action)
+
+    def get_logs(self, all_flag):
+        """
+        ログを取得
+        all_flag: True 非公開情報も含めて全てか（神視点）
+        Falseなら投票履歴のみ
+
+        vote:id:id
+        excution:id
+        skip:id
+        attack:id:id
+        bodyguard:id:id
+        seer:id:id
+        """
+        result = {}
+        for k, v in self.logs.items():
+            if k not in result:
+                result[k] = []
+            for vv in v:
+                div = vv.split(":")
+                if div[0] == "vote" or all_flag:
+                    result[k].append(vv)
+        return result

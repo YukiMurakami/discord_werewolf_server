@@ -162,6 +162,9 @@ class Game:
             if self.second < 0:
                 self.minute -= 1
                 self.second = 59
+            if self.minute < 0:
+                self.minute = 0
+                self.second = 0
             if self.minute <= 0 and self.second <= 0:
                 self.minute = 0
                 self.second = 0
@@ -516,6 +519,8 @@ class Game:
                     self.start_night()
                 else:
                     print("FINISH", self.get_winner_team())
+                    self.second = 0
+                    self.minute = 0
                     self.start_result()
         # 結果完了
         if self.status == Status.RESULT:

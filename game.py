@@ -373,6 +373,8 @@ class Game:
         self.status = Status.EXCUTION
         self.move_members()
         self.callback()
+        # 遺言タイマー
+        self.set_timer("excution", 0, 30)
 
     def start_result(self):
         """

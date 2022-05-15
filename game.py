@@ -591,7 +591,9 @@ class Game:
             "action_results": action_results,
             "excution": self.excuted_id,
             "result": result,
-            "log": self.get_logs(log_open_flag)
+            "log": self.get_logs(log_open_flag),
+            "vote": self.vote_count,
+            "vote_candidates": self.vote_candidates
         }
 
     def add_log(self, action):

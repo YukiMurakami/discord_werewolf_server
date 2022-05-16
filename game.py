@@ -25,6 +25,7 @@ class Player:
         self.speaking: bool = False
         self.disconnect: bool = False
         self.skip: bool = False
+        self.co_list :list = []
 
     def reset(self):
         self.role = None
@@ -99,6 +100,7 @@ class Player:
             "speaking": self.speaking,
             "disconnect": self.disconnect,
             "skip": self.skip,
+            "co_list": self.co_list,
         }
 
 
@@ -271,7 +273,13 @@ class Game:
         rest_actions = []
         for p in self.players:
             if p.live:
-                rest_actions += p.role.get_actions(self, p.discord_id)
+                actions = p.role.get_actions(self, p.discord_id)
+                for action in actions:
+                    if len(action) >= 3 and action[:3] == "co:":
+                        continue
+                    if len(action) >= 5 and action[:5] == "noco:":
+                        continue
+                    rest_actions.append(action)
         return rest_actions
 
     def move_members(self):
@@ -547,10 +555,12 @@ class Game:
         return None
 
     def input_action(self, action):
-        if action not in self.decide_actions:
-            self.decide_actions.append(action)
-            self.add_log(action)
-            self.callback()
+        if action != "":
+            if action not in self.decide_actions:
+                self.decide_actions.append(action)
+                self.add_log(action)
+                self.callback()
+        print("input_action", "'" + action + "'", self.status)
 
         # アクション後に確認が必要なケースの対応
         # 投票完了
@@ -564,6 +574,22 @@ class Game:
             if len(rest_actions) <= 0:
                 self.minute = 0
                 self.second = 5
+        # CO
+        if len(action) >= 5 and (action[:3] == "co:" or action[:5] == "noco:"):
+            role = action.split(":")[1]
+            discord_id = action.split(":")[2]
+            coflag = True
+            if "noco:" in action:
+                coflag = False
+            p = self.get_player(discord_id)
+            if coflag and role not in p.co_list:
+                p.co_list.append(role)
+                self.callback()
+            elif coflag is False and role in p.co_list:
+                p.co_list.remove(role)
+                self.callback()
+
+
         # 遺言完了
         if self.status == Status.EXCUTION:
             rest_actions = self.get_live_player_rest_actions()

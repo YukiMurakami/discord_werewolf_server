@@ -7,7 +7,7 @@ discordapi = None
 
 
 class DiscordClient:
-    def __init__(self):
+    def __init__(self, ready_callback):
         config = configparser.ConfigParser()
         config.read("config.ini")
         self.token = config["DISCORD"]["TOKEN"]
@@ -19,6 +19,7 @@ class DiscordClient:
         self.members = []
         self.move_queue = []
         self.move_vc_callback = None
+        self.ready_callback = ready_callback
 
     def get_member(self, discord_id):
         for m in self.members:
@@ -43,6 +44,7 @@ class DiscordClient:
         self.guild = self.client.guilds[0]
         await self.update_member()
         print("Discord BOT ready")
+        self.ready_callback()
 
     async def update_member(self):
         members = await self.guild.fetch_members().flatten()

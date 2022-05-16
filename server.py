@@ -20,10 +20,13 @@ class Manager:
         if load_flag:
             self.game.load()
 
+    def discord_ready_callback(self):
+        self.game.input_action("")
+
     def start(self):
         print("backend start")
 
-        self.discordapi = DiscordClient()
+        self.discordapi = DiscordClient(self.discord_ready_callback)
         self.discordapi.move_vc_callback = self.game.move_vc_callback
         self.network = Network(
             close_callback=self.network_close_callback,

@@ -64,13 +64,13 @@ class Role:
         # 共通アクション
         actions = []
         # 投票
+        already_vote = False
+        can_vote = True
         if game.status == Status.VOTE:
-            already_vote = False
             for action in game.decide_actions:
                 if "vote:%s:" % player_discord_id in action:
                     already_vote = True
             if already_vote is False:
-                can_vote = True
                 # 決選投票判定
                 live_player_n = len([p for p in game.players if p.live])
                 if live_player_n != len(game.vote_candidates):
@@ -106,7 +106,30 @@ class Role:
                     already_skip = True
             if already_skip is False:
                 actions.append("skip:%s" % player_discord_id)
-
+        # 役職COと撤回
+        # 昼時間は自由、投票での発言中はOK（投票したら不可）、決選投票は対象者のみOK（弁明時のCO）
+        players = [p for p in game.players if p.discord_id == player_discord_id]
+        if len(players) == 1:
+            co_flag = False
+            if game.status == Status.AFTERNOON:
+                co_flag = True
+            elif game.status == Status.VOTE:
+                if game.vote_count == 0:
+                    if already_vote is False:
+                        co_flag = True
+                else:
+                    if already_vote is False and can_vote is False:
+                        co_flag = True
+            if co_flag:
+                player = players[0]
+                now_co_list = player.co_list
+                for role, count in game.rule["roles"].items():
+                    role_eng = token2eng(role)
+                    if count > 0:
+                        if role_eng in now_co_list:
+                            actions.append("noco:%s:%s" % (role_eng, player_discord_id))
+                        else:
+                            actions.append("co:%s:%s" % (role_eng, player_discord_id))
         return actions
 
 
@@ -407,6 +430,22 @@ def eng2token(eng):
     }
     # front川のrole_menu.jsを変更すること
     return dic[eng]
+
+
+def token2eng(token):
+    dic = {
+        "村": "villager",
+        "狼": "werewolf",
+        "占": "seer",
+        "霊": "medium",
+        "狩": "bodyguard",
+        "狂": "madman",
+        "共": "mason",
+        "信": "cultist",
+        "狐": "fox",
+    }
+    # front川のrole_menu.jsを変更すること
+    return dic[token]
 
 
 def token2role(token):

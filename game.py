@@ -88,13 +88,18 @@ class Player:
                             actions.append("kick:%s" % p.discord_id)
         # 投票数集計
         self.update_vote(game)
+
+        # 決選投票は全員の投票が完了するまでは0にする
+        vote_count = self.voted_count
+        if game.status == Status.VOTE and game.vote_count > 0:
+            vote_count = 0
         return {
             "name": self.name,
             "role": role,
             "live": self.live,
             "discord_id": self.discord_id,
             "actions": actions,
-            "voted_count": self.voted_count,
+            "voted_count": vote_count,
             "already_vote": self.already_vote,
             "avator_url": self.avator_url,
             "voice": self.voice,
@@ -727,6 +732,25 @@ class Game:
                 result[k] = []
             for vv in v:
                 div = vv.split(":")
-                if div[0] == "vote" or all_flag:
+                # 投票についてはall_flagに関係なく含める
+                # ただし、決選投票についてはそれが完了するまで含めない
+                # 投票のフェーズ day-VOTE-count
+                include_flag = False
+                if div[0] == "vote":
+                    key_div = k.split("-")
+                    if key_div[1] != "VOTE":
+                        include_flag = True
+                    else:
+                        if self.status != Status.VOTE:
+                            include_flag = True
+                        elif self.vote_count == 0:
+                            include_flag = True
+                        elif self.day != int(key_div[0]) or self.vote_count != int(key_div[2]):
+                            include_flag = True
+                else:
+                    include_flag = False
+                if all_flag:
+                    include_flag = True
+                if include_flag:
                     result[k].append(vv)
         return result

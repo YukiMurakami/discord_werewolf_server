@@ -9,13 +9,16 @@ from network import Network
 import asyncio
 from game import Game
 from util import Status
+import os
 
 
 class Manager:
-    def __init__(self):
+    def __init__(self, load_flag=False):
         self.discordapi = None
         self.network = None
         self.game = Game(self.game_callback, self.move_vc)
+        if load_flag:
+            self.game.load()
 
     def start(self):
         print("backend start")
@@ -179,5 +182,11 @@ class Manager:
 
 
 if __name__ == "__main__":
-    manager = Manager()
+    load_flag = False
+    if os.path.exists("game.pickle"):
+        print("自動保存されたゲームがあります。ロードしますか？ y/n")
+        flag = input()
+        if flag == "y":
+            load_flag = True
+    manager = Manager(load_flag)
     manager.start()

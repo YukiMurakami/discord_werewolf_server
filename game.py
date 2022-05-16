@@ -9,6 +9,7 @@ from role import (
 from random import shuffle
 import threading
 import time
+import pickle
 
 
 class Player:
@@ -101,6 +102,24 @@ class Player:
         }
 
 
+class GameData:
+    def __init__(self):
+        self.players = []
+        self.rule = {}
+        self.minute = 0
+        self.second = 0
+        self.timer_flag = ""
+        self.status = Status.SETTING
+        self.decide_actions = []
+        self.action_results = []
+        self.logs = {}
+        self.day = 0
+        self.vote_count = 0
+        self.vote_candidates = []
+        self.excuted_id = None
+        self.last_guards = []
+
+
 class Game:
     def __init__(self, callback, move_vc):
         self.callback = callback
@@ -116,6 +135,43 @@ class Game:
         th = threading.Thread(target=self.timer)
         th.setDaemon(True)
         th.start()
+
+    def save(self):
+        gamedata = GameData()
+        gamedata.players = self.players
+        gamedata.rule = self.rule
+        gamedata.minute = self.minute
+        gamedata.second = self.second
+        gamedata.timer_flag = self.timer_flag
+        gamedata.status = self.status
+        gamedata.decide_actions = self.decide_actions
+        gamedata.action_results = self.action_results
+        gamedata.logs = self.logs
+        gamedata.day = self.day
+        gamedata.vote_count = self.vote_count
+        gamedata.vote_candidates = self.vote_candidates
+        gamedata.excuted_id = self.excuted_id
+        gamedata.last_guards = self.last_guards
+        with open("game.pickle", "wb") as f:
+            pickle.dump(gamedata, f)
+
+    def load(self):
+        with open("game.pickle", "rb") as f:
+            gamedata = pickle.load(f)
+            self.players = gamedata.players
+            self.rule = gamedata.rule
+            self.minute = gamedata.minute
+            self.second = gamedata.second
+            self.timer_flag = gamedata.timer_flag
+            self.status = gamedata.status
+            self.decide_actions = gamedata.decide_actions
+            self.action_results = gamedata.action_results
+            self.logs = gamedata.logs
+            self.day = gamedata.day
+            self.vote_count = gamedata.vote_count
+            self.vote_candidates = gamedata.vote_candidates
+            self.excuted_id = gamedata.excuted_id
+            self.last_guards = gamedata.last_guards
 
     def init_rule(self):
         self.rule = {
@@ -156,6 +212,7 @@ class Game:
         while True:
             time.sleep(1)
             print(self.minute, self.second, self.timer_flag, self.status)
+            self.save()
             if self.timer_flag == "":
                 continue
             self.second -= 1

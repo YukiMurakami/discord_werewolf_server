@@ -10,6 +10,7 @@ from random import shuffle
 import threading
 import time
 import pickle
+import datetime
 
 
 class Player:
@@ -138,7 +139,7 @@ class Game:
         th.setDaemon(True)
         th.start()
 
-    def save(self):
+    def save(self, filename):
         gamedata = GameData()
         gamedata.players = self.players
         gamedata.rule = self.rule
@@ -154,7 +155,7 @@ class Game:
         gamedata.vote_candidates = self.vote_candidates
         gamedata.excuted_id = self.excuted_id
         gamedata.last_guards = self.last_guards
-        with open("game.pickle", "wb") as f:
+        with open(filename, "wb") as f:
             pickle.dump(gamedata, f)
 
     def load(self):
@@ -214,7 +215,7 @@ class Game:
         while True:
             time.sleep(1)
             print(self.minute, self.second, self.timer_flag, self.status)
-            self.save()
+            self.save("game.pickle")
             if self.timer_flag == "":
                 continue
             self.second -= 1
@@ -608,6 +609,10 @@ class Game:
         # 結果完了
         if self.status == Status.RESULT:
             if "result:" in action:
+                # ゲーム結果を保存
+                dt_now = datetime.datetime.now()
+                filename = "game" + dt_now.strftime('%Y%m%d-%H%M%S') + ".pickle"
+                self.save(filename)
                 self.reset()
                 self.move_members()
                 self.callback()

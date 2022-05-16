@@ -27,6 +27,7 @@ class Player:
         self.disconnect: bool = False
         self.skip: bool = False
         self.co_list :list = []
+        self.hand: int = None
 
     def reset(self):
         self.role = None
@@ -34,6 +35,8 @@ class Player:
         self.voted_count = 0
         self.already_vote = False
         self.skip = False
+        self.hand = None
+        self.co_list = []
 
     def update_vote(self, game):
         self.voted_count = 0
@@ -93,6 +96,11 @@ class Player:
         vote_count = self.voted_count
         if game.status == Status.VOTE and game.vote_count > 0:
             vote_count = 0
+        
+        hands = sorted([n.hand for n in game.players if n.hand is not None])
+        hand = self.hand
+        if self.hand is not None:
+            hand = hands.index(hand) + 1
         return {
             "name": self.name,
             "role": role,
@@ -107,6 +115,7 @@ class Player:
             "disconnect": self.disconnect,
             "skip": self.skip,
             "co_list": self.co_list,
+            "hand": hand,
         }
 
 
@@ -126,6 +135,7 @@ class GameData:
         self.vote_candidates = []
         self.excuted_id = None
         self.last_guards = []
+        self.hand_count = 0
 
 
 class Game:
@@ -160,6 +170,7 @@ class Game:
         gamedata.vote_candidates = self.vote_candidates
         gamedata.excuted_id = self.excuted_id
         gamedata.last_guards = self.last_guards
+        gamedata.hand_count = self.hand_count
         with open(filename, "wb") as f:
             pickle.dump(gamedata, f)
 
@@ -180,6 +191,7 @@ class Game:
             self.vote_candidates = gamedata.vote_candidates
             self.excuted_id = gamedata.excuted_id
             self.last_guards = gamedata.last_guards
+            self.hand_count = gamedata.hand_count
 
     def init_rule(self):
         self.rule = {
@@ -203,6 +215,7 @@ class Game:
         self.excuted_id = None
         self.last_guards = []
         self.timer_flag = ""
+        self.hand_count = 0
 
         last_rule = {}
         for key in ["roles", "first_seer", "bodyguard"]:
@@ -284,6 +297,8 @@ class Game:
                     if len(action) >= 3 and action[:3] == "co:":
                         continue
                     if len(action) >= 5 and action[:5] == "noco:":
+                        continue
+                    if len(action) >= 5 and action[:5] == "hand_":
                         continue
                     rest_actions.append(action)
         return rest_actions
@@ -402,6 +417,8 @@ class Game:
         self.callback()
 
     def start_vote(self):
+        for p in self.players:
+            p.hand = None
         self.decide_actions = []
         if self.status != Status.VOTE:
             # 初回は全員が投票対象
@@ -594,8 +611,17 @@ class Game:
             elif coflag is False and role in p.co_list:
                 p.co_list.remove(role)
                 self.callback()
-
-
+        # 手を挙げる、下げる
+        if len(action) >= 5 and action[:5] == "hand_":
+            discord_id = action.split(":")[1]
+            p = self.get_player(discord_id)
+            if "hand_raise" in action:
+                p.hand = self.hand_count
+                self.hand_count += 1
+                self.callback()
+            elif "hand_down" in action:
+                p.hand = None
+                self.callback()
         # 遺言完了
         if self.status == Status.EXCUTION:
             rest_actions = self.get_live_player_rest_actions()

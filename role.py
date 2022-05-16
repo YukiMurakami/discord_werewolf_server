@@ -130,6 +130,15 @@ class Role:
                             actions.append("noco:%s:%s" % (role_eng, player_discord_id))
                         else:
                             actions.append("co:%s:%s" % (role_eng, player_discord_id))
+        # 手を挙げる、下げる
+        if len(players) == 1:
+            if game.status == Status.AFTERNOON:
+                player = players[0]
+                if player.hand is None:
+                    actions.append("hand_raise:%s" % player_discord_id)
+                else:
+                    actions.append("hand_down:%s" % player_discord_id)
+
         return actions
 
 

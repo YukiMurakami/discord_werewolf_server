@@ -349,6 +349,8 @@ class Game:
         self.move_vc_func(dic)
 
     def start_night(self):
+        for p in self.players:
+            p.hand = None
         self.action_results = []
         self.decide_actions = []
         self.status = Status.NIGHT
@@ -429,6 +431,8 @@ class Game:
         self.callback()
 
     def start_excution(self):
+        for p in self.players:
+            p.hand = None
         # 集計
         max_point = -1
         max_ids = []

@@ -108,6 +108,7 @@ class Role:
                 actions.append("skip:%s" % player_discord_id)
         # 役職COと撤回
         # 昼時間は自由、投票での発言中はOK（投票したら不可）、決選投票は対象者のみOK（弁明時のCO）
+        # 処刑時の遺言はOK
         players = [p for p in game.players if p.discord_id == player_discord_id]
         if len(players) == 1:
             co_flag = False
@@ -120,6 +121,9 @@ class Role:
                 else:
                     if already_vote is False and can_vote is False:
                         co_flag = True
+            elif game.status == Status.EXCUTION:
+                if game.excuted_id is not None and game.excuted_id == player_discord_id:
+                    co_flag = True
             if co_flag:
                 player = players[0]
                 now_co_list = player.co_list
@@ -132,7 +136,7 @@ class Role:
                             actions.append("co:%s:%s" % (role_eng, player_discord_id))
         # 手を挙げる、下げる
         if len(players) == 1:
-            if game.status == Status.AFTERNOON:
+            if game.status in [Status.AFTERNOON, Status.VOTE]:
                 player = players[0]
                 if player.hand is None:
                     actions.append("hand_raise:%s" % player_discord_id)
@@ -270,6 +274,11 @@ class SeerRole(Role):
                             self.first_id).role.get_seer_result().name
                     )
                 )
+                if "0-NIGHT" not in game.logs:
+                    game.logs["0-NIGHT"] = []
+                log = "seer:%s:%s" % (player_discord_id, self.first_id)
+                if log not in game.logs["0-NIGHT"]:
+                    game.logs["0-NIGHT"].append(log)
             elif mode == "free":
                 target_id = None
                 for action in game.decide_actions:

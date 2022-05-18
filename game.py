@@ -704,6 +704,11 @@ class Game:
         result = self.get_winner_team()
         if result is not None:
             result = result.name
+        roles = {}
+        if log_open_flag:
+            for p in self.players:
+                if p.role is not None:
+                    roles[p.discord_id] = p.role.get_name()
         return {
             "status": self.status.name,
             "players": [
@@ -723,7 +728,8 @@ class Game:
             "result": result,
             "log": self.get_logs(log_open_flag),
             "vote": self.vote_count,
-            "vote_candidates": self.vote_candidates
+            "vote_candidates": self.vote_candidates,
+            "roles": roles,
         }
 
     def add_log(self, action):

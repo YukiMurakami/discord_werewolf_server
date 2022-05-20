@@ -136,6 +136,7 @@ class GameData:
         self.excuted_id = None
         self.last_guards = []
         self.hand_count = 0
+        self.timer_stop = False
 
 
 class Game:
@@ -144,6 +145,7 @@ class Game:
         self.players = []
         self.minute = 0
         self.second = 0
+        self.timer_stop = False
         self.timer_flag = ""
         self.move_vc_func = move_vc
         self.config = ConfigParser()
@@ -171,6 +173,7 @@ class Game:
         gamedata.excuted_id = self.excuted_id
         gamedata.last_guards = self.last_guards
         gamedata.hand_count = self.hand_count
+        gamedata.timer_stop = self.timer_stop
         with open(filename, "wb") as f:
             pickle.dump(gamedata, f)
 
@@ -192,10 +195,11 @@ class Game:
             self.excuted_id = gamedata.excuted_id
             self.last_guards = gamedata.last_guards
             self.hand_count = gamedata.hand_count
+            self.timer_stop = gamedata.timer_stop
 
     def init_rule(self):
         self.rule = {
-            "roles": {"村": 2, "狼": 1},
+            "roles": {"狼": 3, "狂": 1, "占": 1, "霊": 1, "狩": 1, "共": 2, "村": 6, "狐": 1},
             "first_seer": FirstSeerRule.FREE,
             "bodyguard": BodyguardRule.CONSECUTIVE_GUARD,
         }
@@ -216,6 +220,7 @@ class Game:
         self.last_guards = []
         self.timer_flag = ""
         self.hand_count = 0
+        self.timer_stop = False
 
         last_rule = {}
         for key in ["roles", "first_seer", "bodyguard"]:
@@ -236,7 +241,8 @@ class Game:
             self.save("game.pickle")
             if self.timer_flag == "":
                 continue
-            self.second -= 1
+            if self.timer_stop is False:
+                self.second -= 1
             if self.second < 0:
                 self.minute -= 1
                 self.second = 59
@@ -349,6 +355,7 @@ class Game:
         self.move_vc_func(dic)
 
     def start_night(self):
+        self.timer_stop = False
         for p in self.players:
             p.hand = None
         self.action_results = []
@@ -362,6 +369,7 @@ class Game:
         )
 
     def start_morning(self):
+        self.timer_stop = False
         self.day += 1
         self.status = Status.MORNING
         self.move_members()
@@ -407,6 +415,7 @@ class Game:
         self.callback()
 
     def start_afternoon(self):
+        self.timer_stop = False
         self.decide_actions = []
         seconds = self.rule["day_seconds"]
         seconds -= self.rule["day_minus_seconds"] * (self.day - 1)
@@ -419,6 +428,7 @@ class Game:
         self.callback()
 
     def start_vote(self):
+        self.timer_stop = False
         for p in self.players:
             p.hand = None
         self.decide_actions = []
@@ -431,6 +441,7 @@ class Game:
         self.callback()
 
     def start_excution(self):
+        self.timer_stop = False
         for p in self.players:
             p.hand = None
         # 集計
@@ -475,11 +486,13 @@ class Game:
         """
         結果表示
         """
+        self.timer_stop = False
         self.status = Status.RESULT
         self.move_members()
         self.callback()
 
     def start_role_check(self):
+        self.timer_stop = False
         self.status = Status.ROLE_CHECK
         self.move_members()
         self.callback()
@@ -730,6 +743,7 @@ class Game:
             "vote": self.vote_count,
             "vote_candidates": self.vote_candidates,
             "roles": roles,
+            "timer_stop": self.timer_stop,
         }
 
     def add_log(self, action):

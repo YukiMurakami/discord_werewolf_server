@@ -120,6 +120,13 @@ class Manager:
         elif data["message"] == "game_start":
             if self.game.can_start():
                 self.game.start()
+        elif "timer_stop:" in data["message"]:
+            if "true" in data["message"]:
+                self.game.timer_stop = True
+                self.game.callback()
+            else:
+                self.game.timer_stop = False
+                self.game.callback()
         elif "kick:" in data["message"]:
             discord_id = data["message"].split(":")[1]
             self.game.remove_player(discord_id)

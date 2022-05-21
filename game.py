@@ -89,6 +89,11 @@ class Player:
                     for i, p in enumerate(game.players):
                         if i != 0:
                             actions.append("kick:%s" % p.discord_id)
+                # 手を挙げる
+                if self.hand is None:
+                    actions.append("hand_raise:%s" % self.discord_id)
+                else:
+                    actions.append("hand_down:%s" % self.discord_id)
         # 投票数集計
         self.update_vote(game)
 

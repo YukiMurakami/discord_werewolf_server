@@ -182,8 +182,10 @@ class Game:
         with open(filename, "wb") as f:
             pickle.dump(gamedata, f)
 
-    def load(self):
-        with open("game.pickle", "rb") as f:
+    def load(self, filename=""):
+        if filename == "":
+            filename = "game.pickle"
+        with open(filename, "rb") as f:
             gamedata = pickle.load(f)
             self.players = gamedata.players
             self.rule = gamedata.rule

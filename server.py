@@ -16,7 +16,7 @@ class Manager:
     def __init__(self, load_flag=False):
         self.discordapi = None
         self.network = None
-        self.game = Game(self.game_callback, self.move_vc)
+        self.game = Game(self.game_callback)
         if load_flag:
             self.game.load()
 
@@ -38,7 +38,7 @@ class Manager:
         discord_tasks = self.discordapi.get_infinite_tasks()
 
         tasks = asyncio.gather(
-            network_task, discord_tasks[0], discord_tasks[1]
+            network_task, discord_tasks[0], self.vc_check_loop()
         )
         asyncio.get_event_loop().run_until_complete(tasks)
         print("finish")
@@ -148,14 +148,30 @@ class Manager:
         self.update_user_connect_status()
         self.send_game_status_all()
 
-    def move_vc(self, data):
+    async def vc_check_loop(self):
         """
-        data: discord_idとroom_keyのdict
+        ゲームの各プレイヤーで指定されているVCへの移動を定期確認するloop
         """
-        for k, v in data.items():
-            self.discordapi.move_member(
-                k, v
-            )
+        while True:
+            try:
+                all_moved_flag = True
+                for p in self.game.players:
+                    discord_id = p.discord_id
+                    room_key = p.to_voice
+                    m: discord.Member = self.discordapi.get_member(discord_id)
+                    if room_key is None:
+                        continue
+                    vc = self.discordapi.get_vc(room_key)
+                    if m.voice is None or m.voice.channel != vc:
+                        all_moved_flag = False
+                        await m.move_to(vc)
+                if all_moved_flag:
+                    if self.game.all_moved_flag is False:
+                        self.game.timer_stop = False
+                    self.game.all_moved_flag = True
+            except Exception as e:
+                print("move_queue processer error ", e)
+            await asyncio.sleep(0.2)
 
     # 入室済みプレイヤー全員にゲーム情報を送る
     def send_game_status_all(self):

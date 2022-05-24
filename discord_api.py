@@ -37,7 +37,7 @@ class DiscordClient:
         return members
 
     def get_infinite_tasks(self):
-        return [self.client.start(self.token), self.move_queue_processer()]
+        return [self.client.start(self.token)]
 
     async def on_ready(self):
         assert(len(self.client.guilds) == 1)
@@ -52,28 +52,6 @@ class DiscordClient:
         for m in members:
             mm = self.client.guilds[0].get_member(m.id)
             self.members.append(mm)
-
-    async def move_queue_processer(self):
-        print("move_queue check start")
-        while True:
-            try:
-                if len(self.move_queue) > 0:
-                    d = self.move_queue.pop()
-                    m: discord.Member = self.get_member(d["discord_id"])
-                    vc = self.get_vc(d["room_key"])
-                    await m.move_to(vc)
-                else:
-                    await asyncio.sleep(0.2)
-            except Exception as e:
-                print("move_queue processer error ", e)
-
-    def move_member(self, discord_id, room_key):
-        self.move_queue.append(
-            {
-                "discord_id": discord_id,
-                "room_key": room_key
-            }
-        )
 
     async def on_voice_state_update(self, member, before, after):
         # 誰かがVCを移動すると呼ばれる
@@ -108,7 +86,6 @@ class DiscordClient:
         if name != "":
             target_id = None
             for vc in self.guild.voice_channels:
-                print(vc, vc.name, vc.id)
                 if vc.name == name:
                     target_id = vc.id
             return self.guild.get_channel(target_id)

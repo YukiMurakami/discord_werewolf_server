@@ -23,6 +23,9 @@ class Player:
         self.voted_count: int = 0
         self.already_vote: bool = False
         self.voice: str = None
+        # voiceは移動先のVC名が入る
+        self.to_voice: str = None
+        # to_voiceに移動先を設定すると定期実行でserverが移動させる
         self.speaking: bool = False
         self.disconnect: bool = False
         self.skip: bool = False
@@ -145,14 +148,14 @@ class GameData:
 
 
 class Game:
-    def __init__(self, callback, move_vc):
+    def __init__(self, callback):
         self.callback = callback
         self.players = []
         self.minute = 0
         self.second = 0
         self.timer_stop = False
         self.timer_flag = ""
-        self.move_vc_func = move_vc
+        self.all_moved_flag = True
         self.config = ConfigParser()
         self.config.read("config.ini")
         self.init_rule()
@@ -321,45 +324,39 @@ class Game:
         if self.status in [Status.RESULT, Status.SETTING]:
             # 全員会議室
             for i in range(len(self.players)):
-                discord_id = self.players[i].discord_id
-                dic[discord_id] = "conference"
+                self.players[i].to_voice = "conference"
         if self.status in [Status.ROLE_CHECK, Status.MORNING]:
             # 個別部屋へ
             for i in range(len(self.players)):
-                discord_id = self.players[i].discord_id
                 live = self.players[i].live
                 if live:
-                    dic[discord_id] = "personal%d" % i
+                    self.players[i].to_voice = "personal%d" % i
                 else:
-                    dic[discord_id] = "ghost"
+                    self.players[i].to_voice = "ghost"
         if self.status == Status.NIGHT:
             # 夜行動へ
             for i in range(len(self.players)):
-                discord_id = self.players[i].discord_id
                 live = self.players[i].live
                 token = self.players[i].role.get_token()
                 if live:
                     if eng2token("werewolf") == token:
-                        dic[discord_id] = "werewolf"
+                        self.players[i].to_voice = "werewolf"
                     elif eng2token("mason") == token:
-                        dic[discord_id] = "mason"
+                        self.players[i].to_voice = "mason"
                     elif eng2token("fox") == token:
-                        dic[discord_id] = "fox"
+                        self.players[i].to_voice = "fox"
                     else:
-                        dic[discord_id] = "personal%d" % i
+                        self.players[i].to_voice = "personal%d" % i
                 else:
-                    dic[discord_id] = "ghost"
+                    self.players[i].to_voice = "ghost"
         if self.status in [Status.AFTERNOON, Status.EXCUTION, Status.VOTE]:
             # 昼行動へ
             for i in range(len(self.players)):
-                discord_id = self.players[i].discord_id
                 live = self.players[i].live
                 if live:
-                    dic[discord_id] = "conference"
+                    self.players[i].to_voice= "conference"
                 else:
-                    dic[discord_id] = "ghost"
-
-        self.move_vc_func(dic)
+                    self.players[i].to_voice = "ghost"
 
     def start_night(self):
         self.timer_stop = False
@@ -368,6 +365,9 @@ class Game:
         self.action_results = []
         self.decide_actions = []
         self.status = Status.NIGHT
+
+        self.timer_stop = True
+        self.all_moved_flag = False
         self.move_members()
         self.set_timer(
             "night",
@@ -430,6 +430,9 @@ class Game:
             seconds = self.rule["min_day_seconds"]
         self.status = Status.AFTERNOON
         self.vote_count = 0
+
+        self.timer_stop = True
+        self.all_moved_flag = False
         self.move_members()
         self.set_timer("afternoon", seconds // 60, seconds % 60)
         self.callback()
@@ -584,6 +587,7 @@ class Game:
         p.avator_url = avator_url
         p.name = name
         p.voice = voice
+        p.to_voice = None
         self.players.append(p)
         self.move_members()
 
@@ -751,6 +755,7 @@ class Game:
             "vote_candidates": self.vote_candidates,
             "roles": roles,
             "timer_stop": self.timer_stop,
+            "all_moved_flag": self.all_moved_flag,
         }
 
     def add_log(self, action):

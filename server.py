@@ -10,6 +10,7 @@ import asyncio
 from game import Game
 from util import Status
 import os
+import random
 
 
 class Manager:
@@ -155,7 +156,10 @@ class Manager:
         while True:
             try:
                 all_moved_flag = True
-                for p in self.game.players:
+                random_indices = [n for n in range(len(self.game.players))]
+                random.shuffle(random_indices)
+                for i in random_indices:
+                    p = self.game.players[i]
                     discord_id = p.discord_id
                     room_key = p.to_voice
                     m: discord.Member = self.discordapi.get_member(discord_id)

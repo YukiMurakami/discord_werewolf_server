@@ -160,6 +160,7 @@ class Game:
         self.config.read("config.ini")
         self.init_rule()
         self.reset()
+        self.first_hand_discord_id = None
         th = threading.Thread(target=self.timer)
         th.setDaemon(True)
         th.start()
@@ -239,7 +240,10 @@ class Game:
             "night_seconds": int(self.config["GAME"]["NIGHT_SECONDS"]),
             "day_seconds": int(self.config["GAME"]["DAY_MAX_SECONDS"]),
             "min_day_seconds": int(self.config["GAME"]["DAY_MIN_SECONDS"]),
-            "day_minus_seconds": int(self.config["GAME"]["DAY_DIFF_SECONDS"])
+            "day_minus_seconds": int(self.config["GAME"]["DAY_DIFF_SECONDS"]),
+            "morning_seconds": int(self.config["GAME"]["MORNING_SECONDS"]),
+            "vote_seconds": int(self.config["GAME"]["VOTE_SECONDS"]),
+            "will_seconds": int(self.config["GAME"]["WILL_SECONDS"])
         }
         for key in ["roles", "first_seer", "bodyguard"]:
             self.rule[key] = last_rule[key]
@@ -365,9 +369,9 @@ class Game:
         self.action_results = []
         self.decide_actions = []
         self.status = Status.NIGHT
-
-        self.timer_stop = True
-        self.all_moved_flag = False
+        if self.config["GAME"]["WAIT_MOVE"] in ["True", "true"]:
+            self.timer_stop = True
+            self.all_moved_flag = False
         self.move_members()
         self.set_timer(
             "night",
@@ -380,7 +384,7 @@ class Game:
         self.day += 1
         self.status = Status.MORNING
         self.move_members()
-        self.set_timer("morning", 0, 10)
+        self.set_timer("morning", 0, self.rule["morning_seconds"])
         # 犠牲者セット
         victim_ids = []
         # 噛まれた人が死ぬ
@@ -430,9 +434,9 @@ class Game:
             seconds = self.rule["min_day_seconds"]
         self.status = Status.AFTERNOON
         self.vote_count = 0
-
-        self.timer_stop = True
-        self.all_moved_flag = False
+        if self.config["GAME"]["WAIT_MOVE"] in ["True", "true"]:
+            self.timer_stop = True
+            self.all_moved_flag = False
         self.move_members()
         self.set_timer("afternoon", seconds // 60, seconds % 60)
         self.callback()
@@ -490,7 +494,7 @@ class Game:
         self.move_members()
         self.callback()
         # 遺言タイマー
-        self.set_timer("excution", 0, 30)
+        self.set_timer("excution", 0, self.rule["will_seconds"])
 
     def start_result(self):
         """
@@ -506,7 +510,7 @@ class Game:
         self.status = Status.ROLE_CHECK
         self.move_members()
         self.callback()
-        self.set_timer("role_checking", 0, 10)
+        self.set_timer("role_checking", 0, self.rule["morning_seconds"])
 
     def set_timer(self, timer_flag, minute, second):
         self.timer_flag = timer_flag
@@ -650,6 +654,20 @@ class Game:
             elif "hand_down" in action:
                 p.hand = None
                 self.callback()
+            # １番手の更新
+            hands = sorted([n.hand for n in self.players if n.hand is not None])
+            if len(hands) > 0:
+                min_hand = hands[0]
+                first_hand_discord_id = None
+                for n in self.players:
+                    if n.hand is not None and n.hand == min_hand:
+                        first_hand_discord_id = n.discord_id
+                if first_hand_discord_id is not None:
+                    if self.status == Status.VOTE:
+                        if self.first_hand_discord_id != first_hand_discord_id:
+                            # 投票タイマー
+                            self.set_timer("vote", 0, self.rule["vote_seconds"])
+                    self.first_hand_discord_id = first_hand_discord_id
         # 遺言完了
         if self.status == Status.EXCUTION:
             rest_actions = self.get_live_player_rest_actions()

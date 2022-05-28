@@ -620,6 +620,12 @@ class Game:
         # アクション後に確認が必要なケースの対応
         # 投票完了
         if self.status == Status.VOTE:
+            # 投票したら手を自動で下げる
+            if "vote:" in action:
+                div = action.split(":")
+                for p in self.players:
+                    if p.discord_id == div[1] and p.hand is not None:
+                        p.hand = None
             rest_actions = self.get_live_player_rest_actions()
             if len(rest_actions) <= 0:
                 self.start_excution()
@@ -654,20 +660,20 @@ class Game:
             elif "hand_down" in action:
                 p.hand = None
                 self.callback()
-            # １番手の更新
-            hands = sorted([n.hand for n in self.players if n.hand is not None])
-            if len(hands) > 0:
-                min_hand = hands[0]
-                first_hand_discord_id = None
-                for n in self.players:
-                    if n.hand is not None and n.hand == min_hand:
-                        first_hand_discord_id = n.discord_id
-                if first_hand_discord_id is not None:
-                    if self.status == Status.VOTE:
-                        if self.first_hand_discord_id != first_hand_discord_id:
-                            # 投票タイマー
-                            self.set_timer("vote", 0, self.rule["vote_seconds"])
-                    self.first_hand_discord_id = first_hand_discord_id
+        # １番手の更新
+        hands = sorted([n.hand for n in self.players if n.hand is not None])
+        if len(hands) > 0:
+            min_hand = hands[0]
+            first_hand_discord_id = None
+            for n in self.players:
+                if n.hand is not None and n.hand == min_hand:
+                    first_hand_discord_id = n.discord_id
+            if first_hand_discord_id is not None:
+                if self.status == Status.VOTE:
+                    if self.first_hand_discord_id != first_hand_discord_id:
+                        # 投票タイマー
+                        self.set_timer("vote", 0, self.rule["vote_seconds"])
+                self.first_hand_discord_id = first_hand_discord_id
         # 遺言完了
         if self.status == Status.EXCUTION:
             rest_actions = self.get_live_player_rest_actions()

@@ -115,7 +115,7 @@ class Manager:
                 "+bodyguard", "-bodyguard",
                 "+madman", "-madman",
                 "+mason", "-mason", "+cultist", "-cultist",
-                "+fox", "-fox"]:
+                "+fox", "-fox", "+baker", "-baker"]:
             self.game.change_rule(data["message"])
             self.send_game_status_all()
         elif data["message"] == "game_start":

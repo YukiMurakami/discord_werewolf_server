@@ -757,6 +757,16 @@ class Game:
             for p in self.players:
                 if p.role is not None:
                     roles[p.discord_id] = p.role.get_name()
+        # パン屋生存有無
+        live_baker = "no_baker"
+        live_flag = False
+        for p in self.players:
+            if p.role is not None and p.role.get_name() == "パン屋":
+                live_baker = "dead"
+                if p.live:
+                    live_flag = True
+        if live_flag:
+            live_baker = "live"
         return {
             "status": self.status.name,
             "players": [
@@ -780,6 +790,7 @@ class Game:
             "roles": roles,
             "timer_stop": self.timer_stop,
             "all_moved_flag": self.all_moved_flag,
+            "live_baker_flag": live_baker,
         }
 
     def add_log(self, action):

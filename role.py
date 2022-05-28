@@ -434,6 +434,17 @@ class FoxRole(Role):
         self.know_names = [self.name]
 
 
+class BakerRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "パン屋"
+        self.token = "パ"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.VILLAGER
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -445,6 +456,7 @@ def eng2token(eng):
         "mason": "共",
         "cultist": "信",
         "fox": "狐",
+        "baker": "パ",
     }
     # front川のrole_menu.jsを変更すること
     return dic[eng]
@@ -461,6 +473,7 @@ def token2eng(token):
         "共": "mason",
         "信": "cultist",
         "狐": "fox",
+        "パ": "baker",
     }
     # front川のrole_menu.jsを変更すること
     return dic[token]
@@ -477,5 +490,6 @@ def token2role(token):
         "共": MasonRole,
         "信": CultistRole,
         "狐": FoxRole,
+        "パ": BakerRole,
     }
     return dic[token]

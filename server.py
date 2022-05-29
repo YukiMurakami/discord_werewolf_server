@@ -118,7 +118,8 @@ class Manager:
                 "+bodyguard", "-bodyguard",
                 "+madman", "-madman",
                 "+mason", "-mason", "+cultist", "-cultist",
-                "+fox", "-fox", "+baker", "-baker"]:
+                "+fox", "-fox", "+baker", "-baker",
+                "+cat", "-cat"]:
             self.game.change_rule(data["message"])
             self.send_game_status_all()
         elif data["message"] == "game_start":

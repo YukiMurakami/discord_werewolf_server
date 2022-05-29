@@ -145,6 +145,7 @@ class GameData:
         self.vote_count = 0
         self.vote_candidates = []
         self.excuted_id = None
+        self.companions = []
         self.last_guards = []
         self.hand_count = 0
         self.timer_stop = False
@@ -186,6 +187,7 @@ class Game:
         gamedata.last_guards = self.last_guards
         gamedata.hand_count = self.hand_count
         gamedata.timer_stop = self.timer_stop
+        gamedata.companions = self.companions
         with open(filename, "wb") as f:
             pickle.dump(gamedata, f)
 
@@ -210,6 +212,7 @@ class Game:
             self.last_guards = gamedata.last_guards
             self.hand_count = gamedata.hand_count
             self.timer_stop = gamedata.timer_stop
+            self.companions = gamedata.companions
 
     def init_rule(self):
         self.rule = {
@@ -231,6 +234,7 @@ class Game:
         self.vote_count = 0
         self.vote_candidates = []
         self.excuted_id = None
+        self.companions = []
         self.last_guards = []
         self.timer_flag = ""
         self.hand_count = 0
@@ -391,9 +395,11 @@ class Game:
         # 犠牲者セット
         victim_ids = []
         # 噛まれた人が死ぬ
+        attack_wolf = None
         for action in self.decide_actions:
             div = action.split(":")
             if div[0] == "attack":
+                attack_wolf = div[1]
                 victim_token = self.get_player(div[2]).role.get_token()
                 if victim_token not in [eng2token("fox")]:
                     # 妖狐以外が噛める
@@ -411,6 +417,12 @@ class Game:
                 ))
                 if dist_id in victim_ids:
                     victim_ids.remove(dist_id)
+        # 噛まれて死亡した猫又は噛んだ人狼を道連れに
+        for victim_id in victim_ids:
+            victim_role = self.get_player(victim_id).role
+            if victim_role is not None and victim_role.get_token() == "猫":
+                if attack_wolf is not None:
+                    victim_ids.append(attack_wolf)
         # 占われた妖狐は死ぬ
         for action in self.decide_actions:
             div = action.split(":")
@@ -685,6 +697,23 @@ class Game:
                 for p in self.players:
                     if p.discord_id == self.excuted_id:
                         p.live = False
+                # 勝利判定前に道連れ処理
+                self.companions = []
+                if self.excuted_id is not None:
+                    excuted_role = self.get_player(self.excuted_id).role.get_token()
+                    if excuted_role == "猫":
+                        # 猫又のランダム道連れ
+                        candidates = []
+                        for p in self.players:
+                            if p.live and p.role.get_team() == Team.VILLAGER:
+                                candidates.append(p.discord_id)
+                        if len(candidates) > 0:
+                            shuffle(candidates)
+                            self.companions.append("cat:%s" % candidates[0])
+                            self.add_log("companion:cat:%s" % candidates[0])
+                            for p in self.players:
+                                if p.discord_id == candidates[0]:
+                                    p.live = False
                 if self.get_winner_team() is None:
                     self.start_night()
                 else:
@@ -794,6 +823,7 @@ class Game:
             "timer_stop": self.timer_stop,
             "all_moved_flag": self.all_moved_flag,
             "live_baker_flag": live_baker,
+            "companions": self.companions,
         }
 
     def add_log(self, action):

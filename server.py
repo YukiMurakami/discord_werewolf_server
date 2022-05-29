@@ -96,6 +96,9 @@ class Manager:
                 )
                 self.update_user_connect_status()
                 self.send_game_status_all()
+        elif data["message"] == "observe":
+            self.update_user_connect_status()
+            self.send_game_status_all()
         elif ("start_speak:" in data["message"] or
                 "end_speak:" in data["message"]):
             d_id = data["message"].split(":")[1]
@@ -186,6 +189,14 @@ class Manager:
                     p.discord_id,
                     {"message": "game_status",
                         "status": self.game.get_status(p.discord_id)}
+                )
+        # 観戦プレイヤーに情報を送る
+        for discord_id in already_use_ids:
+            if "observe_" in discord_id:
+                self.network.send_to_discord_id(
+                    discord_id,
+                    {"message": "game_status",
+                        "status": self.game.get_status(discord_id)}
                 )
 
     # 以降各処理の関数

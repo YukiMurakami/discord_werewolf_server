@@ -28,6 +28,8 @@ class Network:
         self.port = config["API"]["PORT"]
         self.sslfile = config["API"]["SSL_FILE"]
 
+        self.observe_id = 0
+
     def get_infinite_task(self):
         if self.sslfile != "":
             ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
@@ -86,6 +88,9 @@ class Network:
                         # ２重ログインは拒否
                         return
                     self.users[conn] = discord_id
+                elif data["message"] == "observe":
+                    self.users[conn] = "observe_%d" % self.observe_id
+                    self.observe_id += 1
                 discord_id = self.users[conn]
                 self.received_callback(discord_id, conn, data)
 

@@ -69,12 +69,15 @@ class Player:
                     # 自分ならOpen
                     pass
                 else:
-                    from_role = game.get_player(from_discord_id).role
-                    # 味方ならOpen
-                    if self.role.get_name() in from_role.know_names:
-                        pass
-                    else:
+                    if "observe_" in from_discord_id:
                         role = "?"
+                    else:
+                        from_role = game.get_player(from_discord_id).role
+                        # 味方ならOpen
+                        if self.role.get_name() in from_role.know_names:
+                            pass
+                        else:
+                            role = "?"
         actions = []
         # 自分かつ生存ならアクション追加
         if self.discord_id == from_discord_id:

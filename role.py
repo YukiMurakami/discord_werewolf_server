@@ -456,6 +456,18 @@ class CatRole(Role):
         self.team = Team.VILLAGER
 
 
+class ImmoralistRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "背徳者"
+        self.token = "背"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.FOX
+        self.know_names = [token2role("狐")().name]
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -469,6 +481,7 @@ def eng2token(eng):
         "fox": "狐",
         "baker": "パ",
         "cat": "猫",
+        "immoralist": "背",
     }
     # front川のrole_menu.jsを変更すること
     return dic[eng]
@@ -487,6 +500,7 @@ def token2eng(token):
         "狐": "fox",
         "パ": "baker",
         "猫": "cat",
+        "背": "immoralist",
     }
     # front川のrole_menu.jsを変更すること
     return dic[token]
@@ -505,5 +519,6 @@ def token2role(token):
         "狐": FoxRole,
         "パ": BakerRole,
         "猫": CatRole,
+        "背": ImmoralistRole,
     }
     return dic[token]

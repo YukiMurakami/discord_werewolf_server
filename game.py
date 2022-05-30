@@ -423,6 +423,7 @@ class Game:
             if victim_role is not None and victim_role.get_token() == "猫":
                 if attack_wolf is not None:
                     victim_ids.append(attack_wolf)
+                    self.add_log("companion:cat:%s" % attack_wolf)
         # 占われた妖狐は死ぬ
         for action in self.decide_actions:
             div = action.split(":")
@@ -433,6 +434,16 @@ class Game:
                 if dist_token in [eng2token("fox")]:
                     if dist_id not in victim_ids:
                         victim_ids.append(dist_id)
+        # 妖狐が全滅していたら背徳者は全部後追い
+        live_fox_ids = []
+        for p in self.players:
+            if p.live and p.discord_id not in victim_ids and p.role.get_token() == "狐":
+                live_fox_ids.append(p.discord_id)
+        if len(live_fox_ids) <= 0:
+            for p in self.players:
+                if p.live and p.role.get_token() == "背":
+                    self.add_log("companion:immoralist:%s" % p.discord_id)
+                    victim_ids.append(p.discord_id)
         victim_ids = list(set(victim_ids))
         shuffle(victim_ids)
         for victim_id in victim_ids:
@@ -713,6 +724,19 @@ class Game:
                             self.add_log("companion:cat:%s" % candidates[0])
                             for p in self.players:
                                 if p.discord_id == candidates[0]:
+                                    p.live = False
+                    if excuted_role == "狐":
+                        # 背徳者の後追い自殺
+                        live_fox_ids = []
+                        for p in self.players:
+                            if p.live and p.role.get_name() == "妖狐":
+                                live_fox_ids.append(p.discord_id)
+                        if len(live_fox_ids) <= 0:
+                            # 妖狐全滅
+                            for p in self.players:
+                                if p.live and p.role.get_name() == "背徳者":
+                                    self.companions.append("immoralist:%s" % p.discord_id)
+                                    self.add_log("companion:immoralist:%s" % p.discord_id)
                                     p.live = False
                 if self.get_winner_team() is None:
                     self.start_night()

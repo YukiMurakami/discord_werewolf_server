@@ -50,6 +50,9 @@ class Manager:
     def update_user_connect_status(self):
         # ゲームの各ユーザの接続状況をアップデートする
         for p in self.game.players:
+            if p.first_victim:
+                p.disconnect = False
+                continue
             d_id = p.discord_id
             if d_id in list(self.network.users.values()):
                 p.disconnect = False
@@ -113,6 +116,7 @@ class Manager:
         elif data["message"] in [
                 "+villager", "-villager", "+werewolf", "-werewolf",
                 "+seer", "-seer", "first_seer_no", "first_seer_free",
+                "first_victim_yes", "first_victim_no",
                 "first_seer_random_white", "bodyguard_rule_no",
                 "bodyguard_rule_yes", "+medium", "-medium",
                 "+bodyguard", "-bodyguard",

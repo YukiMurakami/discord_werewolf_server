@@ -171,23 +171,35 @@ class WerewolfRole(Role):
     def get_actions(self, game, player_discord_id):
         actions = super().get_actions(game, player_discord_id)
         # 夜フェイズで初日以外
-        if game.status == Status.NIGHT and game.day >= 1:
+        if game.status == Status.NIGHT:
             already_attack = False
             for action in game.decide_actions:
                 if "attack:" in action:
                     already_attack = True
             if already_attack is False:
-                # 生きている味方以外を一人噛む
-                # アクションは attack:attacker_discord_id:attacked_discord_id
-                for p in game.players:
-                    if p.live:
-                        if p.role.get_team_count() != TeamCount.WEREWOLF:
-                            actions.append(
-                                "attack:%s:%s" % (
-                                    player_discord_id, p.discord_id
+                if game.day >= 1:
+                    # 生きている味方以外を一人噛む
+                    # アクションは attack:attacker_discord_id:attacked_discord_id
+                    for p in game.players:
+                        if p.live:
+                            if p.role.get_team_count() != TeamCount.WEREWOLF:
+                                actions.append(
+                                    "attack:%s:%s" % (
+                                        player_discord_id, p.discord_id
+                                    )
                                 )
-                            )
-            return actions
+                    return actions
+                else:
+                    # 初日夜
+                    for p in game.players:
+                        if p.live and p.first_victim:
+                            if p.role.get_team_count() != TeamCount.WEREWOLF:
+                                actions.append(
+                                    "attack:%s:%s" % (
+                                        player_discord_id, p.discord_id
+                                    )
+                                )
+                    return actions
         return actions
 
     def get_action_results(self, game, player_discord_id):

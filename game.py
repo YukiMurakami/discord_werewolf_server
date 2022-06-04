@@ -31,6 +31,7 @@ class Player:
         self.skip: bool = False
         self.co_list :list = []
         self.hand: int = None
+        self.first_victim: bool = False
 
     def reset(self):
         self.role = None
@@ -81,7 +82,7 @@ class Player:
         actions = []
         # 自分かつ生存ならアクション追加
         if self.discord_id == from_discord_id:
-            if self.role is not None and self.live:
+            if self.role is not None and self.live and self.first_victim is False:
                 actions = self.role.get_actions(game, self.discord_id)
             elif game.status == Status.SETTING:
                 # 役職配布前なのでここで個別対応
@@ -93,7 +94,7 @@ class Player:
                         break
                 if now_index == 0:
                     for i, p in enumerate(game.players):
-                        if i != 0:
+                        if i != 0 and p.first_victim is False:
                             actions.append("kick:%s" % p.discord_id)
                 # 手を挙げる
                 if self.hand is None:
@@ -162,6 +163,8 @@ class Game:
         self.all_moved_flag = True
         self.config = ConfigParser()
         self.config.read("config.ini")
+        self.first_victim_id = "first_victim"
+        self.first_victim_name = self.config["GAME"]["FIRST_VICTIM_NAME"]
         self.init_rule()
         self.reset()
         self.first_hand_discord_id = None
@@ -219,6 +222,7 @@ class Game:
             "roles": {"狼": 3, "狂": 1, "占": 1, "霊": 1, "狩": 1, "共": 2, "村": 6, "狐": 1},
             "first_seer": FirstSeerRule.FREE,
             "bodyguard": BodyguardRule.CONSECUTIVE_GUARD,
+            "first_victim": False,
         }
 
     def reset(self):
@@ -241,7 +245,7 @@ class Game:
         self.timer_stop = False
 
         last_rule = {}
-        for key in ["roles", "first_seer", "bodyguard"]:
+        for key in ["roles", "first_seer", "bodyguard", "first_victim"]:
             last_rule[key] = self.rule[key]
         self.rule = {
             "night_seconds": int(self.config["GAME"]["NIGHT_SECONDS"]),
@@ -252,7 +256,7 @@ class Game:
             "vote_seconds": int(self.config["GAME"]["VOTE_SECONDS"]),
             "will_seconds": int(self.config["GAME"]["WILL_SECONDS"])
         }
-        for key in ["roles", "first_seer", "bodyguard"]:
+        for key in ["roles", "first_seer", "bodyguard", "first_victim"]:
             self.rule[key] = last_rule[key]
 
     def timer(self):
@@ -318,7 +322,7 @@ class Game:
     def get_live_player_rest_actions(self):
         rest_actions = []
         for p in self.players:
-            if p.live:
+            if p.live and p.first_victim is False:
                 actions = p.role.get_actions(self, p.discord_id)
                 for action in actions:
                     if len(action) >= 3 and action[:3] == "co:":
@@ -580,10 +584,18 @@ class Game:
         役職設定がゲーム終了条件を満たしていない
         役職設定がプレイ人数と合っている
         の両方を満たした時開始可能
+        役かけに配布可能な役職があるかどうか
         """
         winner_team = self.get_winner_team()
         if winner_team is not None:
             return False
+        first_victim_role = 0
+        for k, v in self.rule["roles"].items():
+            if k not in ["狼", "狐", "猫"]:
+                first_victim_role += v
+        if self.rule["first_victim"]:
+            if first_victim_role <= 0:
+                return False
         role_sum = 0
         for k, v in self.rule["roles"].items():
             role_sum += v
@@ -600,12 +612,21 @@ class Game:
     def set_roles(self):
         """
         役職配布
+        役かけには尻尾のある役職は渡さない
         """
         roles = []
         for k, v in self.rule["roles"].items():
             for _ in range(v):
                 roles.append(token2role(k)())
-        shuffle(roles)
+        for n in range(1000000):
+            shuffle(roles)
+            if self.rule["first_victim"] is False:
+                break
+            if roles[-1].get_token() not in ["狼", "狐", "猫"]:
+                break
+            if n >= 999999:
+                print("役職配布エラー")
+                assert False
         for i in range(len(self.players)):
             self.players[i].role = roles[i]
 
@@ -618,7 +639,10 @@ class Game:
         p.name = name
         p.voice = voice
         p.to_voice = None
-        self.players.append(p)
+        if len(self.players) > 0 and self.players[-1].first_victim:
+            self.players.insert(-1, p)
+        else:
+            self.players.append(p)
         self.move_members()
 
     def remove_player(self, discord_id):
@@ -628,6 +652,19 @@ class Game:
             if p.discord_id == discord_id:
                 self.players.remove(p)
                 return
+
+    def add_first_victim_player(self):
+        if self.get_player(self.first_victim_id) is not None:
+            return
+        p = Player()
+        p.discord_id = self.first_victim_id
+        p.avator_url = None
+        p.name = self.first_victim_name
+        p.voice = ""
+        p.to_voice = None
+        p.first_victim = True
+        self.players.append(p)
+        self.move_members()
 
     def get_player(self, discord_id):
         for p in self.players:
@@ -788,6 +825,12 @@ class Game:
                         "bodyguard"] = BodyguardRule.CANNOT_CONSECUTIVE_GUARD
                 if message == "bodyguard_rule_yes":
                     self.rule["bodyguard"] = BodyguardRule.CONSECUTIVE_GUARD
+            if "first_victim_" in message:
+                self.rule["first_victim"] = (message == "first_victim_yes")
+                if self.rule["first_victim"]:
+                    self.add_first_victim_player()
+                else:
+                    self.remove_player(self.first_victim_id)
 
     def get_status(self, from_discord_id):
         open_flag = False
@@ -799,7 +842,7 @@ class Game:
         # 個人分を追加 & 行動履歴開示条件（死亡しているか）の確認
         for p in self.players:
             if p.discord_id == from_discord_id:
-                if p.role is not None:
+                if p.role is not None and p.first_victim is False:
                     action_results += p.role.get_action_results(
                         self, from_discord_id
                     )
@@ -832,7 +875,8 @@ class Game:
             "rule": {
                 "roles": self.rule["roles"],
                 "first_seer": self.rule["first_seer"].name,
-                "bodyguard": self.rule["bodyguard"].name
+                "bodyguard": self.rule["bodyguard"].name,
+                "first_victim": self.rule["first_victim"],
             },
             "minute": self.minute,
             "second": self.second,

@@ -231,7 +231,7 @@ class SeerRole(Role):
         if self.first_id is None:
             cands = []
             for p in game.players:
-                if p.discord_id != player_discord_id:
+                if p.discord_id != player_discord_id and p.first_victim is False:
                     if (p.role is not None and
                             p.role.get_team_count() not in [
                                 TeamCount.WEREWOLF, TeamCount.NOTHING]):
@@ -252,7 +252,8 @@ class SeerRole(Role):
                     # 生きている自分以外を占う
                     # アクションは seer:my_discord_id:target_discord_id
                     for p in game.players:
-                        if p.live and p.discord_id != player_discord_id:
+                        if (p.live and p.discord_id != player_discord_id and
+                                p.first_victim is False):
                             actions.append(
                                 "seer:%s:%s" % (
                                     player_discord_id, p.discord_id

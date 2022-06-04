@@ -672,6 +672,13 @@ class Game:
                 return p
         return None
 
+    def get_raise_hand_n(self):
+        count = 0
+        for p in self.players:
+            if p.hand is not None:
+                count += 1
+        return count
+
     def input_action(self, action):
         if action != "":
             if action not in self.decide_actions:
@@ -717,9 +724,10 @@ class Game:
             discord_id = action.split(":")[1]
             p = self.get_player(discord_id)
             if "hand_raise" in action:
-                p.hand = self.hand_count
-                self.hand_count += 1
-                self.callback()
+                if self.status != Status.VOTE or self.get_raise_hand_n() < 2:
+                    p.hand = self.hand_count
+                    self.hand_count += 1
+                    self.callback()
             elif "hand_down" in action:
                 p.hand = None
                 self.callback()

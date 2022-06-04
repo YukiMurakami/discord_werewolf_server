@@ -168,6 +168,8 @@ class Manager:
                 random.shuffle(random_indices)
                 for i in random_indices:
                     p = self.game.players[i]
+                    if p.first_victim:
+                        continue
                     discord_id = p.discord_id
                     room_key = p.to_voice
                     m: discord.Member = self.discordapi.get_member(discord_id)

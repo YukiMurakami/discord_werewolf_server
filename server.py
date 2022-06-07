@@ -56,10 +56,10 @@ class Manager:
             d_id = p.discord_id
             if d_id in list(self.network.users.values()):
                 p.disconnect = False
-                print(p.name, p.disconnect)
+                # print(p.name, p.disconnect)
             else:
                 p.disconnect = True
-                print(p.name, p.disconnect)
+                # print(p.name, p.disconnect)
 
     def network_disconnected_callback(self, discord_id):
         name = None
@@ -176,16 +176,16 @@ class Manager:
                     if room_key is None:
                         continue
                     vc = self.discordapi.get_vc(room_key)
-                    if m.voice is None or m.voice.channel != vc:
+                    if m.voice is not None and m.voice.channel != vc:
                         all_moved_flag = False
                         await m.move_to(vc)
+                        await asyncio.sleep(0.1)
                 if all_moved_flag:
-                    if self.game.all_moved_flag is False:
-                        self.game.timer_stop = False
+                    self.game.waitmove_timer_stop = False
                     self.game.all_moved_flag = True
             except Exception as e:
                 print("move_queue processer error ", e)
-            await asyncio.sleep(0.2)
+            await asyncio.sleep(1)
 
     # 入室済みプレイヤー全員にゲーム情報を送る
     def send_game_status_all(self):

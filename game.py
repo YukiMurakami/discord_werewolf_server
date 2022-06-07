@@ -70,7 +70,7 @@ class Player:
                     # 自分ならOpen
                     pass
                 else:
-                    if "observe_" in from_discord_id:
+                    if "observe_" in from_discord_id or from_discord_id == "":
                         role = "?"
                     else:
                         from_role = game.get_player(from_discord_id).role
@@ -150,6 +150,7 @@ class GameData:
         self.last_guards = []
         self.hand_count = 0
         self.timer_stop = False
+        self.waitmove_timer_stop = False
 
 
 class Game:
@@ -159,6 +160,7 @@ class Game:
         self.minute = 0
         self.second = 0
         self.timer_stop = False
+        self.waitmove_timer_stop = False
         self.timer_flag = ""
         self.all_moved_flag = True
         self.config = ConfigParser()
@@ -191,6 +193,7 @@ class Game:
         gamedata.hand_count = self.hand_count
         gamedata.timer_stop = self.timer_stop
         gamedata.companions = self.companions
+        gamedata.waitmove_timer_stop = self.waitmove_timer_stop
         with open(filename, "wb") as f:
             pickle.dump(gamedata, f)
 
@@ -216,6 +219,7 @@ class Game:
             self.hand_count = gamedata.hand_count
             self.timer_stop = gamedata.timer_stop
             self.companions = gamedata.companions
+            self.waitmove_timer_stop = gamedata.waitmove_timer_stop
 
     def init_rule(self):
         self.rule = {
@@ -243,6 +247,7 @@ class Game:
         self.timer_flag = ""
         self.hand_count = 0
         self.timer_stop = False
+        self.waitmove_timer_stop = False
 
         last_rule = {}
         for key in ["roles", "first_seer", "bodyguard", "first_victim"]:
@@ -262,11 +267,13 @@ class Game:
     def timer(self):
         while True:
             time.sleep(1)
-            print(self.minute, self.second, self.timer_flag, self.status)
+            print(self.minute, self.second, self.timer_flag, self.status, self.timer_stop, self.waitmove_timer_stop)
             self.save("game.pickle")
             if self.timer_flag == "":
                 continue
-            if self.timer_stop is False:
+            if self.status != Status.AFTERNOON:
+                self.timer_stop = False
+            if self.timer_stop is False and self.waitmove_timer_stop is False:
                 self.second -= 1
             if self.second < 0:
                 self.minute -= 1
@@ -381,7 +388,7 @@ class Game:
         self.decide_actions = []
         self.status = Status.NIGHT
         if self.config["GAME"]["WAIT_MOVE"] in ["True", "true"]:
-            self.timer_stop = True
+            self.waitmove_timer_stop = True
             self.all_moved_flag = False
         self.move_members()
         self.set_timer(
@@ -465,7 +472,7 @@ class Game:
         self.status = Status.AFTERNOON
         self.vote_count = 0
         if self.config["GAME"]["WAIT_MOVE"] in ["True", "true"]:
-            self.timer_stop = True
+            self.waitmove_timer_stop = True
             self.all_moved_flag = False
         self.move_members()
         self.set_timer("afternoon", seconds // 60, seconds % 60)
@@ -896,7 +903,7 @@ class Game:
             "vote": self.vote_count,
             "vote_candidates": self.vote_candidates,
             "roles": roles,
-            "timer_stop": self.timer_stop,
+            "timer_stop": self.timer_stop or self.waitmove_timer_stop,
             "all_moved_flag": self.all_moved_flag,
             "live_baker_flag": live_baker,
             "companions": self.companions,

@@ -455,6 +455,17 @@ class Game:
                 if p.live and p.role.get_token() == "背":
                     self.add_log("companion:immoralist:%s" % p.discord_id)
                     victim_ids.append(p.discord_id)
+        # 女王が死亡（最大一人）した場合人間カウントが全部後追い
+        live_queen = True
+        for p in self.players:
+            if p.role.get_token() == "女" and (p.discord_id in victim_ids or p.live is False):
+                live_queen = False
+        if live_queen is False:
+            for p in self.players:
+                if p.live and p.role.get_team_count() == TeamCount.HUMAN:
+                    if p.discord_id not in victim_ids:
+                        self.add_log("companion:queen:%s" % p.discord_id)
+                        victim_ids.append(p.discord_id)
         victim_ids = list(set(victim_ids))
         shuffle(victim_ids)
         for victim_id in victim_ids:
@@ -598,7 +609,7 @@ class Game:
             return False
         first_victim_role = 0
         for k, v in self.rule["roles"].items():
-            if k not in ["狼", "狐", "猫"]:
+            if k not in ["狼", "狐", "猫", "女"]:
                 first_victim_role += v
         if self.rule["first_victim"]:
             if first_victim_role <= 0:
@@ -629,7 +640,7 @@ class Game:
             shuffle(roles)
             if self.rule["first_victim"] is False:
                 break
-            if roles[-1].get_token() not in ["狼", "狐", "猫"]:
+            if roles[-1].get_token() not in ["狼", "狐", "猫", "女"]:
                 break
             if n >= 999999:
                 print("役職配布エラー")
@@ -790,6 +801,17 @@ class Game:
                                     self.companions.append("immoralist:%s" % p.discord_id)
                                     self.add_log("companion:immoralist:%s" % p.discord_id)
                                     p.live = False
+                    # 道連れ処理のあと、女王が死亡していたら人間判定は全員後追い
+                    live_queen = True
+                    for p in self.players:
+                        if p.role.get_token() == "女" and p.live is False:
+                            live_queen = False
+                    if live_queen is False:
+                        for p in self.players:
+                            if p.live and p.role.get_team_count() == TeamCount.HUMAN:
+                                self.companions.append("queen:%s" % p.discord_id)
+                                self.add_log("companion:queen:%s" % p.discord_id)
+                                p.live = False
                 if self.get_winner_team() is None:
                     self.start_night()
                 else:

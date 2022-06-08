@@ -156,6 +156,7 @@ class VillagerRole(Role):
         self.medium_result = MediumResult.NO_WEREWOLF
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
+        self.know_names = [token2role("女")().name]
 
 
 class WerewolfRole(Role):
@@ -225,8 +226,8 @@ class SeerRole(Role):
         self.medium_result = MediumResult.NO_WEREWOLF
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
-        self.know_names = []
         self.first_id = None
+        self.know_names = [token2role("女")().name]
 
     def get_actions(self, game, player_discord_id):
         if self.first_id is None:
@@ -320,7 +321,7 @@ class MediumRole(Role):
         self.medium_result = MediumResult.NO_WEREWOLF
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
-        self.know_names = []
+        self.know_names = [token2role("女")().name]
 
     def get_actions(self, game, player_discord_id):
         actions = super().get_actions(game, player_discord_id)
@@ -353,7 +354,7 @@ class BodyguardRole(Role):
         self.medium_result = MediumResult.NO_WEREWOLF
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
-        self.know_names = []
+        self.know_names = [token2role("女")().name]
 
     def get_actions(self, game, player_discord_id):
         actions = super().get_actions(game, player_discord_id)
@@ -421,7 +422,7 @@ class MasonRole(Role):
         self.medium_result = MediumResult.NO_WEREWOLF
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
-        self.know_names = [self.name]
+        self.know_names = [self.name, token2role("女")().name]
 
 
 class CultistRole(Role):
@@ -457,6 +458,7 @@ class BakerRole(Role):
         self.medium_result = MediumResult.NO_WEREWOLF
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
+        self.know_names = [token2role("女")().name]
 
 
 class CatRole(Role):
@@ -468,6 +470,7 @@ class CatRole(Role):
         self.medium_result = MediumResult.NO_WEREWOLF
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
+        self.know_names = [token2role("女")().name]
 
 
 class ImmoralistRole(Role):
@@ -480,6 +483,18 @@ class ImmoralistRole(Role):
         self.team_count = TeamCount.HUMAN
         self.team = Team.FOX
         self.know_names = [token2role("狐")().name]
+
+
+class QueenRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "女王"
+        self.token = "女"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.VILLAGER
+        self.upper = 1
 
 
 def eng2token(eng):
@@ -496,6 +511,7 @@ def eng2token(eng):
         "baker": "パ",
         "cat": "猫",
         "immoralist": "背",
+        "queen": "女",
     }
     # front川のrole_menu.jsを変更すること
     return dic[eng]
@@ -515,12 +531,18 @@ def token2eng(token):
         "パ": "baker",
         "猫": "cat",
         "背": "immoralist",
+        "女": "queen",
     }
     # front川のrole_menu.jsを変更すること
     return dic[token]
 
 
 def token2role(token):
+    dic = get_role_dic()
+    return dic[token]
+
+
+def get_role_dic():
     dic = {
         "村": VillagerRole,
         "狼": WerewolfRole,
@@ -534,5 +556,6 @@ def token2role(token):
         "パ": BakerRole,
         "猫": CatRole,
         "背": ImmoralistRole,
+        "女": QueenRole,
     }
-    return dic[token]
+    return dic

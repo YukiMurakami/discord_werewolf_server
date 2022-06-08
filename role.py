@@ -34,6 +34,7 @@ class Role:
         self.team_count = TeamCount.HUMAN
         self.team = Team.VILLAGER
         self.know_names = []
+        self.upper = None
 
     def get_name(self):
         return self.name

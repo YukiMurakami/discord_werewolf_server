@@ -824,7 +824,9 @@ class Game:
                             self.rule["roles"][token] -= 1
                 else:
                     if token in self.rule["roles"]:
-                        self.rule["roles"][token] += 1
+                        upper = token2role(token)().upper
+                        if upper is None or upper >= self.rule["roles"][token] + 1:
+                            self.rule["roles"][token] += 1
                     else:
                         self.rule["roles"][token] = 1
             if "first_seer_" in message:

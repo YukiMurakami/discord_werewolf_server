@@ -98,6 +98,7 @@ class Network:
         print("socket ready", self.host, self.port)
         while True:
             try:
+                print("QUEUE SIZE", len(self.message_queue))
                 if len(self.message_queue) > 0:
                     d = self.message_queue.pop()
                     conn = None
@@ -115,7 +116,7 @@ class Network:
             except Exception as e:
                 print("send_coroutine error ", e)
                 print(traceback.format_exc())
-                break
+                # break
 
     def send_to_conn(self, conn, data):
         self.message_queue.append({

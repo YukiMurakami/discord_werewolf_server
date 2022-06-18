@@ -10,6 +10,8 @@ class Status(Enum):
     VOTE = 6
     EXCUTION = 7
     RESULT = 8
+    DETECTIVE = 9
+    DETECTIVE_READY = 10
 
 
 class FirstSeerRule(Enum):

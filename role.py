@@ -23,6 +23,7 @@ class Team(Enum):
     VILLAGER = 1
     WEREWOLF = 2
     FOX = 3
+    DETECTIVE = 4
 
 
 class Role:
@@ -497,6 +498,41 @@ class QueenRole(Role):
         self.upper = 1
 
 
+class DetectiveRole(Role):
+    def __init__(self):
+        super().__init__()
+        self.name = "名探偵"
+        self.token = "探"
+        self.seer_result = SeerResult.NO_WEREWOLF
+        self.medium_result = MediumResult.NO_WEREWOLF
+        self.team_count = TeamCount.HUMAN
+        self.team = Team.DETECTIVE
+
+    def get_actions(self, game, player_discord_id):
+        actions = super().get_actions(game, player_discord_id)
+        # 昼フェイズに推理ショーをするか選択
+        if game.status == Status.AFTERNOON:
+            already_show = False
+            for action in game.decide_actions:
+                if "detective_show:%s" % player_discord_id in action:
+                    already_show = True
+            if already_show is False:
+                actions.append("detective_show:%s" % player_discord_id)
+        return actions
+
+    def get_action_results(self, game, player_discord_id):
+        """
+        特定個人や役職しか知らない行動結果を返す
+        """
+        action_results = super().get_action_results(game, player_discord_id)
+        # 昼フェイズに推理ショー表明はそれを表示
+        for action in game.decide_actions:
+            div = action.split(":")
+            if div[0] == "detective_show" and div[1] == player_discord_id:
+                action_results.append(action)
+        return action_results
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -512,6 +548,7 @@ def eng2token(eng):
         "cat": "猫",
         "immoralist": "背",
         "queen": "女",
+        "detective": "探",
     }
     # front川のrole_menu.jsを変更すること
     return dic[eng]
@@ -532,6 +569,7 @@ def token2eng(token):
         "猫": "cat",
         "背": "immoralist",
         "女": "queen",
+        "探": "detective",
     }
     # front川のrole_menu.jsを変更すること
     return dic[token]
@@ -557,5 +595,6 @@ def get_role_dic():
         "猫": CatRole,
         "背": ImmoralistRole,
         "女": QueenRole,
+        "探": DetectiveRole,
     }
     return dic

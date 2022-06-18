@@ -4,6 +4,7 @@ from role import (
     Role,
     eng2token,
     token2role,
+    token2eng,
     TeamCount, Team
 )
 from random import shuffle
@@ -32,6 +33,7 @@ class Player:
         self.co_list :list = []
         self.hand: int = None
         self.first_victim: bool = False
+        self.reveal_role: bool = False
 
     def reset(self):
         self.role = None
@@ -41,6 +43,7 @@ class Player:
         self.skip = False
         self.hand = None
         self.co_list = []
+        self.reveal_role = False
 
     def update_vote(self, game):
         self.voted_count = 0
@@ -65,7 +68,7 @@ class Player:
         role = "?"
         if self.role is not None:
             role = self.role.get_name()
-            if open_flag is False:
+            if open_flag is False and self.reveal_role is False:
                 if self.discord_id == from_discord_id:
                     # 自分ならOpen
                     pass
@@ -146,6 +149,9 @@ class GameData:
         self.vote_count = 0
         self.vote_candidates = []
         self.excuted_id = None
+        self.detective_id = None
+        self.now_detective_answer = []
+        self.win_detective_id = None
         self.companions = []
         self.last_guards = []
         self.hand_count = 0
@@ -189,6 +195,9 @@ class Game:
         gamedata.vote_count = self.vote_count
         gamedata.vote_candidates = self.vote_candidates
         gamedata.excuted_id = self.excuted_id
+        gamedata.detective_id = self.detective_id
+        gamedata.now_detective_answer = self.now_detective_answer
+        gamedata.win_detective_id = self.win_detective_id
         gamedata.last_guards = self.last_guards
         gamedata.hand_count = self.hand_count
         gamedata.timer_stop = self.timer_stop
@@ -215,6 +224,9 @@ class Game:
             self.vote_count = gamedata.vote_count
             self.vote_candidates = gamedata.vote_candidates
             self.excuted_id = gamedata.excuted_id
+            self.detective_id = gamedata.detective_id
+            self.now_detective_answer = gamedata.now_detective_answer
+            self.win_detective_id = gamedata.win_detective_id
             self.last_guards = gamedata.last_guards
             self.hand_count = gamedata.hand_count
             self.timer_stop = gamedata.timer_stop
@@ -242,6 +254,9 @@ class Game:
         self.vote_count = 0
         self.vote_candidates = []
         self.excuted_id = None
+        self.detective_id = None
+        self.now_detective_answer = []
+        self.win_detective_id = None
         self.companions = []
         self.last_guards = []
         self.timer_flag = ""
@@ -307,7 +322,65 @@ class Game:
                 print("FINISH", self.get_winner_team())
                 self.start_result()
         elif timer_flag == "afternoon" and self.status == Status.AFTERNOON:
-            self.start_vote()
+            # 名探偵推理ショーがあればそちらを優先
+            detective_show = None
+            for action in self.decide_actions:
+                if "detective_show:" in action:
+                    div = action.split(":")
+                    detective_id = div[1]
+                    detective_p = self.get_player(detective_id)
+                    if detective_p.live:
+                        detective_show = detective_id
+                        break
+            if detective_show is None:
+                self.detective_id = None
+                self.now_detective_answer = []
+                self.start_vote()
+            else:
+                self.detective_id = detective_show
+                self.start_detective_show()
+        elif timer_flag == "detective_ready" and self.status == Status.DETECTIVE_READY:
+            # 名探偵の推理ショーの回答まちが終了
+            # 答え合わせ
+            check = True
+            for i in range(len(self.players)):
+                predict_role = self.now_detective_answer[i]
+                ans_role = token2eng(self.players[i].role.get_token())
+                if predict_role != ans_role:
+                    check = False
+                    break
+            if check:
+                # 名探偵勝利
+                self.win_detective_id = self.detective_id
+                self.add_log("detectivewin:%s" % self.detective_id)
+                self.start_result()
+            else:
+                # 恥ずか死
+                self.add_log("companion:detective:%s" % self.detective_id)
+                self.get_player(self.detective_id).live = False
+                # 勝利条件チェック
+                if self.get_winner_team():
+                    self.start_result()
+                else:
+                    # 他の名探偵チェック
+                    detective_show = None
+                    for action in self.decide_actions:
+                        if "detective_show:" in action:
+                            div = action.split(":")
+                            detective_id = div[1]
+                            detective_p = self.get_player(detective_id)
+                            if detective_p.live:
+                                detective_show = detective_id
+                                break
+                    if detective_show is None:
+                        self.detective_id = None
+                        self.now_detective_answer = []
+                        self.start_vote()
+                    else:
+                        self.detective_id = detective_show
+                        self.start_detective_show()
+
+
 
     def move_vc_callback(self, dic):
         # vc移動で呼ばれる
@@ -337,6 +410,8 @@ class Game:
                     if len(action) >= 5 and action[:5] == "noco:":
                         continue
                     if len(action) >= 5 and action[:5] == "hand_":
+                        continue
+                    if len(action) >= 15 and action[:15] == "detective_show:":
                         continue
                     rest_actions.append(action)
         return rest_actions
@@ -379,6 +454,32 @@ class Game:
                     self.players[i].to_voice= "conference"
                 else:
                     self.players[i].to_voice = "ghost"
+
+    def start_detective_show(self):
+        self.status = Status.DETECTIVE
+        self.get_player(self.detective_id).reveal_role = True
+        self.now_detective_answer = []
+        # 初期配役をルールからセット
+        for k, v in self.rule["roles"].items():
+            for _ in range(v):
+                self.now_detective_answer.append(token2eng(k))
+        # 目安として３分をタイマーセット
+        self.set_timer(
+            "detective",
+            3,
+            0
+        )
+        self.callback()
+
+    def start_detective_ready(self):
+        self.status = Status.DETECTIVE_READY
+        # 結果を焦らす
+        self.set_timer(
+            "detective_ready",
+            0,
+            5
+        )
+        self.callback()
 
     def start_night(self):
         self.timer_stop = False
@@ -548,6 +649,8 @@ class Game:
         """
         結果表示
         """
+        self.second = 0
+        self.minute = 0
         self.timer_stop = False
         self.status = Status.RESULT
         self.move_members()
@@ -584,6 +687,9 @@ class Game:
                         human_count += 1
                     if p.role.get_team() == Team.FOX:
                         fox_count += 1
+        # 名探偵の推理が当たっていたら名探偵勝利
+        if self.win_detective_id is not None:
+            return Team.DETECTIVE
         # 人狼がいなければ村かち
         if werewolf_count <= 0 and human_count <= 0:
             return None
@@ -829,6 +935,19 @@ class Game:
                 self.reset()
                 self.move_members()
                 self.callback()
+        # 名探偵の推理
+        if self.status == Status.DETECTIVE:
+            if "now_detective_answer:" in action:
+                div = action.split(":")
+                detective_id = div[1]
+                answer = div[2].split(",")
+                if self.detective_id == detective_id:
+                    self.now_detective_answer = answer
+                    self.callback()
+            if "detective_complete:" in action:
+                self.second = 0
+                self.minute = 0
+                self.start_detective_ready()
 
     def change_rule(self, message: str):
         """
@@ -931,6 +1050,8 @@ class Game:
             "all_moved_flag": self.all_moved_flag,
             "live_baker_flag": live_baker,
             "companions": self.companions,
+            "detective": self.detective_id,
+            "now_detective_answer": self.now_detective_answer,
         }
 
     def add_log(self, action):

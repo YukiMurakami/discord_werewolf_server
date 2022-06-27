@@ -715,7 +715,7 @@ class Game:
             return False
         first_victim_role = 0
         for k, v in self.rule["roles"].items():
-            if k not in ["狼", "狐", "猫", "女"]:
+            if k not in ["狼", "狐", "猫", "女", "探"]:
                 first_victim_role += v
         if self.rule["first_victim"]:
             if first_victim_role <= 0:
@@ -746,7 +746,7 @@ class Game:
             shuffle(roles)
             if self.rule["first_victim"] is False:
                 break
-            if roles[-1].get_token() not in ["狼", "狐", "猫", "女"]:
+            if roles[-1].get_token() not in ["狼", "狐", "猫", "女", "探"]:
                 break
             if n >= 999999:
                 print("役職配布エラー")

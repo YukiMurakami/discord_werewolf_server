@@ -237,7 +237,8 @@ class SeerRole(Role):
                 if p.discord_id != player_discord_id and p.first_victim is False:
                     if (p.role is not None and
                             p.role.get_team_count() not in [
-                                TeamCount.WEREWOLF, TeamCount.NOTHING]):
+                                TeamCount.WEREWOLF,
+                                TeamCount.NOTHING] and p.role.get_token() != "闇"):
                         cands.append(p.discord_id)
             if len(cands) > 0:
                 random.shuffle(cands)
@@ -533,6 +534,15 @@ class DetectiveRole(Role):
         return action_results
 
 
+class DarkknightRole(BodyguardRole):
+    def __init__(self):
+        super().__init__()
+        self.name = "闇騎士"
+        self.token = "闇"
+        self.seer_result = SeerResult.WEREWOLF
+        self.medium_result = MediumResult.WEREWOLF
+
+
 def eng2token(eng):
     dic = {
         "villager": "村",
@@ -549,6 +559,7 @@ def eng2token(eng):
         "immoralist": "背",
         "queen": "女",
         "detective": "探",
+        "darkknight": "闇",
     }
     # front川のrole_menu.jsを変更すること
     return dic[eng]
@@ -570,6 +581,7 @@ def token2eng(token):
         "背": "immoralist",
         "女": "queen",
         "探": "detective",
+        "闇": "darkknight",
     }
     # front川のrole_menu.jsを変更すること
     return dic[token]
@@ -596,5 +608,6 @@ def get_role_dic():
         "背": ImmoralistRole,
         "女": QueenRole,
         "探": DetectiveRole,
+        "闇": DarkknightRole,
     }
     return dic

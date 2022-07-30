@@ -124,7 +124,8 @@ class Manager:
                 "+mason", "-mason", "+cultist", "-cultist",
                 "+fox", "-fox", "+baker", "-baker",
                 "+cat", "-cat", "+immoralist", "-immoralist",
-                "+queen", "-queen", "+detective", "-detective"]:
+                "+queen", "-queen", "+detective", "-detective",
+                "+darkknight", "-darkknight"]:
             self.game.change_rule(data["message"])
             self.send_game_status_all()
         elif data["message"] == "game_start":

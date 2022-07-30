@@ -400,7 +400,10 @@ class BodyguardRole(Role):
         for action in game.decide_actions:
             div = action.split(":")
             if div[0] == "bodyguard":
-                action_results.append(action)
+                bodyguard_id = div[1]
+                # 自分の守り先のみ表示する
+                if bodyguard_id == player_discord_id:
+                    action_results.append(action)
         return action_results
 
 

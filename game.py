@@ -1001,9 +1001,10 @@ class Game:
         for p in self.players:
             if p.discord_id == from_discord_id:
                 if p.role is not None and p.first_victim is False:
-                    action_results += p.role.get_action_results(
-                        self, from_discord_id
-                    )
+                    if p.live:
+                        action_results += p.role.get_action_results(
+                            self, from_discord_id
+                        )
                 if p.live is False:
                     log_open_flag = True
         result = self.get_winner_team()
